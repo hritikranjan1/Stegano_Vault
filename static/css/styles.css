@@ -1,0 +1,227 @@
+/* Theme Variables Section */
+[data-theme="dark"] {
+    --bg-color: #1a202c;        /* Main background color */
+    --text-color: #e2e8f0;      /* Text color */
+    --card-bg: #2d3748;         /* Background for cards and boxes */
+    --button-bg: #4a5568;       /* Button background */
+    --hover-bg: #4a5568;        /* Hover state background */
+    --message-bg: #2d3748;      /* Message container background */
+    --scrollbar-bg: #4a5568;    /* Scrollbar color */
+}
+
+[data-theme="light"] {
+    --bg-color: #f8fafc;        /* Main background color */
+    --text-color: #1a202c;      /* Text color */
+    --card-bg: #ffffff;         /* Background for cards and boxes */
+    --button-bg: #4299e1;       /* Button background */
+    --hover-bg: #3182ce;        /* Hover state background */
+    --message-bg: #f7fafc;      /* Message container background */
+    --scrollbar-bg: #cbd5e0;    /* Scrollbar color */
+}
+
+/* Body/Base Styling Section */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background 0.5s, color 0.5s; /* Smooth theme switch */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 0.1rem;
+}
+
+/* Animation Section */
+.motion-fade {
+    animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Button Styling Section */
+.motion-button {
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+.motion-button:hover {
+    transform: scale(1.05);          /* Slight scale-up on hover */
+    background-color: var(--hover-bg);
+}
+
+/* File Upload Box Section */
+#drop-area {
+    border: 2px dashed var(--scrollbar-bg); /* Consistent border color */
+    border-radius: 10px;
+    padding: 10px;
+    transition: background-color 0.3s ease-in-out; /* Smooth hover transition */
+}
+
+#drop-area:hover {
+    background-color: var(--hover-bg); /* Hover state background */
+}
+
+/* File Name Display Section */
+.file-name {
+    margin-top: 12px;
+    font-weight: bold;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+/* Contributors Box Section */
+.contributors {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease; /* Slide-in effect */
+}
+
+.contributors.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.contributor {
+    margin: 15px;
+    text-align: center;
+}
+
+.contributor img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--button-bg); /* Circular image with border */
+}
+
+/* Background Animation Section */
+.background-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://example.com/your-motion-poster.gif') no-repeat center center fixed;
+    background-size: cover;
+    z-index: -1;
+    opacity: 0.5;
+}
+
+/* Footer Section */
+.footer {
+    margin-top: auto;
+    text-align: center;
+    padding: 30px;
+}
+
+/* Important Note Box Section */
+.important-note {
+    background-color: #fff3cd;          /* Light yellow background */
+    color: #856404;                     /* Dark yellow text */
+    padding: 20px;
+    border-left: 4px solid #ffc107;     /* Yellow border accent */
+    border-radius: 4px;
+    margin-top: 30px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Grid Section (How It Works Boxes) */
+.grid-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 30px;
+    margin: 50px auto;
+    max-width: 1400px;
+    padding: 0 30px;
+}
+
+/* Grid Card Box Section */
+.grid-card {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Hover lift effect */
+    max-height: 400px;                  /* Fixed height for scrolling */
+    overflow-y: auto;                   /* Enable vertical scrollbar */
+}
+
+.grid-card:hover {
+    transform: translateY(-5px);        /* Lift up on hover */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Deeper shadow */
+}
+
+.grid-card h3 {
+    font-size: 1.75rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: var(--text-color);
+}
+
+.grid-card p {
+    color: var(--text-color);
+    opacity: 0.9;
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+}
+
+.grid-card ul {
+    margin-left: 20px;
+    margin-bottom: 12px;
+}
+
+/* Scrollbar Styling for Grid Cards */
+.grid-card::-webkit-scrollbar {
+    width: 10px;
+}
+
+.grid-card::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+.grid-card::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-bg);
+    border-radius: 5px;
+}
+
+.grid-card::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-bg);
+}
+
+/* Message Container Box Section */
+.message-container {
+    background-color: var(--message-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    max-height: 200px;                  /* Scrollable height */
+    overflow-y: auto;
+    border: 1px solid var(--scrollbar-bg);
+    color: var(--text-color);
+    white-space: pre-wrap;              /* Preserves text formatting */
+    font-size: 1.1rem;
+}
+
+/* Scrollbar Styling for Message Container */
+.message-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.message-container::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+.message-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-bg);
+    border-radius: 5px;
+}
+
+.message-container::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-bg);
+}
