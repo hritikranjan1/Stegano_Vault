@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteganoVault - Steganography Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Theme Variables */
+        [data-theme="dark"] {
+            --bg-color: #1a202c;
+            --text-color: #e2e8f0;
+            --card-bg: #2d3748;
+            --button-bg: #4a5568;
+            --hover-bg: #718096;
+            --message-bg: #2d3748;
+            --scrollbar-bg: #4a5568;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f8fafc;
+            --text-color: #1a202c;
+            --card-bg: #ffffff;
+            --button-bg: #4299e1;
+            --hover-bg: #3182ce;
+            --message-bg: #f7fafc;
+            --scrollbar-bg: #cbd5e0;
+        }
+
+        /* Base Styling */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background 0.5s, color 0.5s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 0.5rem;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Animation */
+        .motion-fade {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Button Styling */
+        .motion-button {
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+
+        .motion-button:hover {
+            transform: scale(1.05);
+            background-color: var(--hover-bg);
+        }
+
+        /* File Upload Box */
+        #drop-area {
+            border: 2px dashed var(--scrollbar-bg);
+            border-radius: 10px;
+            padding: 20px;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #drop-area.dragover {
+            background-color: var(--hover-bg);
+        }
+
+        .file-name {
+            margin-top: 12px;
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 1.1rem;
+            word-break: break-all;
+        }
+
+        /* Contributors */
+        .contributors {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 30px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .contributors.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .contributor {
+            text-align: center;
+            max-width: 150px;
+        }
+
+        .contributor img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--button-bg);
+            object-fit: cover;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .important-note {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Grid Section */
+        .grid-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 40px auto;
+            max-width: 1200px;
+            padding: 0 20px;
+        }
+
+        .grid-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .grid-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .grid-card h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .grid-card p, .grid-card ul {
+            color: var(--text-color);
+            opacity: 0.9;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .grid-card ul {
+            margin-left: 20px;
+        }
+
+        .grid-card::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .grid-card::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        .grid-card::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-bg);
+            border-radius: 4px;
+        }
+
+        .grid-card::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Message Container */
+        .message-container {
+            background-color: var(--message-bg);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--scrollbar-bg);
+            color: var(--text-color);
+            white-space: pre-wrap;
+            font-size: 1rem;
+        }
+
+        .message-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .message-container::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        .message-container::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-bg);
+            border-radius: 4px;
+        }
+
+        .message-container::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between">
+    <!-- Navigation Bar -->
+    <nav class="w-full flex justify-between items-center mb-6 mt-4 px-4">
+        <div class="flex items-center gap-3">
+            <button id="theme-toggle" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                ☀️ Light Mode
+            </button>
+            <a href="#steganovault" class="text-xl font-bold bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                SteganoVault
+            </a>
+        </div>
+        <div class="flex gap-3">
+            <a href="#encode-decode" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                Encode/Decode
+            </a>
+            <a href="#how-it-works" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                How It Works
+            </a>
+            <a href="#contributors" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                Contributors
+            </a>
+            <a href="https://github.com/hritikranjan1/SteganoVault" target="_blank" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <h1 class="text-4xl md:text-5xl font-bold mb-8 motion-fade" id="steganovault">🔐 SteganoVault</h1>
+    <p class="text-center mb-8 text-base md:text-lg max-w-2xl px-4">Steganography Tool - Hide and Extract Secret Messages in Files (images, text, PDFs, DOCX, audio, video)</p>
+
+    <!-- Main App Box -->
+    <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-6 w-full max-w-xl md:max-w-2xl motion-fade mb-12" id="encode-decode">
+        <h2 class="text-3xl md:text-4xl font-semibold mb-6 text-center">Encode / Decode</h2>
+
+        <!-- Drag & Drop File Upload -->
+        <div id="drop-area" class="border-2 border-dashed border-[var(--scrollbar-bg)] rounded-lg p-6 text-center motion-fade">
+            <p class="mb-4 text-lg md:text-xl">📂 Drag & Drop your file here</p>
+            <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.txt,.mp3,.wav,.pdf,.docx,.mp4,.avi,.mov">
+            <button onclick="document.getElementById('fileInput').click()" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded hover:bg-[var(--hover-bg)] transition-colors motion-button text-base md:text-lg">
+                Select File
+            </button>
+            <div id="fileName" class="file-name"></div>
+        </div>
+
+        <label class="block mt-6 text-lg md:text-xl">Enter Message:</label>
+        <input type="text" id="messageInput" class="w-full p-3 border rounded bg-transparent text-lg" placeholder="Hidden message">
+
+        <label class="block mt-6 text-lg md:text-xl">Optional Password:</label>
+        <input type="password" id="passwordInput" class="w-full p-3 border rounded bg-transparent text-lg" placeholder="Enter password (optional)">
+
+        <div class="flex flex-col md:flex-row gap-4 mt-6">
+            <button onclick="encode()" class="bg-green-500 text-white px-4 py-2 rounded w-full motion-button hover:bg-green-600 text-base md:text-lg">🔒 Encode</button>
+            <button onclick="decode()" class="bg-red-500 text-white px-4 py-2 rounded w-full motion-button hover:bg-red-600 text-base md:text-lg">🔓 Decode</button>
+        </div>
+
+        <div id="output" class="mt-6 text-center text-lg"></div>
+        <div id="messageContainer" class="message-container hidden"></div>
+    </div>
+
+    <!-- How It Works Section -->
+    <h3 class="text-2xl md:text-3xl font-semibold mb-6 motion-fade" id="how-it-works">How It Works</h3>
+    <div class="grid-section">
+        <div class="grid-card motion-fade">
+            <h3>What is Steganography?</h3>
+            <p>Steganography hides secret information inside files so it’s undetectable without knowing it’s there.</p>
+            <h3>🔹 How It Works?</h3>
+            <p>It embeds messages in files (images, audio, etc.) without visibly altering them, unlike encryption.</p>
+            <h3>🔹 Common Techniques</h3>
+            <ul>
+                <li><b>LSB:</b> Hides data in least significant bits.</li>
+                <li><b>Text:</b> Uses invisible characters.</li>
+                <li><b>Media:</b> Embeds in audio/video frames.</li>
+            </ul>
+            <h3>🔹 Applications</h3>
+            <ul>
+                <li>🔐 Secure messaging</li>
+                <li>🕵️ Cybersecurity</li>
+                <li>🎨 Watermarking</li>
+            </ul>
+        </div>
+        <div class="grid-card motion-fade">
+            <h3>🛠️ Technical Process</h3>
+            <p>SteganoVault embeds secrets using various methods.</p>
+            <h3>🔹 Steps</h3>
+            <ul>
+                <li><b>Input:</b> Choose file and message.</li>
+                <li><b>Embed:</b> Hide data (e.g., LSB).</li>
+                <li><b>Extract:</b> Retrieve with password.</li>
+            </ul>
+        </div>
+        <div class="grid-card motion-fade">
+            <h3>🔒 Best Practices</h3>
+            <ul>
+                <li>🔑 Use strong passwords.</li>
+                <li>🖼️ Pick complex files.</li>
+                <li>⚡ Avoid patterns.</li>
+            </ul>
+            <h3>⚠️ Limitations</h3>
+            <ul>
+                <li>📏 Limited capacity.</li>
+                <li>🕵️ Steganalysis risk.</li>
+                <li>📂 Compression issues.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Contributors Section -->
+    <h3 class="text-2xl md:text-3xl font-semibold mb-6 motion-fade" id="contributors">Contributors</h3>
+    <div class="contributors motion-fade">
+        <div class="contributor">
+            <img src="https://github.com/hritikranjan1/Imagehosting/raw/main/Hritik-removebg-preview.png" alt="Hritik Ranjan" loading="lazy">
+            <p class="font-semibold mt-2 text-lg">Hritik Ranjan</p>
+            <div class="flex flex-col items-center gap-1 mt-1">
+                <a href="https://github.com/hritikranjan1" target="_blank" class="text-blue-500 hover:text-blue-600">GitHub</a>
+                <a href="https://www.linkedin.com/in/hritikranjan1/" target="_blank" class="text-blue-500 hover:text-blue-600">LinkedIn</a>
+            </div>
+        </div>
+        <div class="contributor">
+            <img src="https://github.com/hritikranjan1/Imagehosting/raw/main/ruhul.jpeg" alt="Ruhul Islam" loading="lazy">
+            <p class="font-semibold mt-2 text-lg">Ruhul Islam</p>
+            <div class="flex flex-col items-center gap-1 mt-1">
+                <a href="https://github.com/iruhul8750" target="_blank" class="text-blue-500 hover:text-blue-600">GitHub</a>
+                <a href="https://www.linkedin.com/in/ruhulislam2022/" target="_blank" class="text-blue-500 hover:text-blue-600">LinkedIn</a>
+            </div>
+        </div>
+        <div class="contributor">
+            <img src="https://github.com/hritikranjan1/Imagehosting/raw/main/kamal.png" alt="Kamaljit Chauhan" loading="lazy">
+            <p class="font-semibold mt-2 text-lg">Kamaljit Chauhan</p>
+            <a href="https://github.com/Kamaljit8708885373" target="_blank" class="text-blue-500 hover:text-blue-600">GitHub</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="important-note">
+            <h3 class="text-lg font-semibold">Important Note</h3>
+            <p>For educational use only. Not secure for sensitive data—use proper encryption instead.</p>
+        </div>
+        <p class="text-base mt-4">© 2025 SteganoVault. Built with ❤️</p>
+    </div>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.innerHTML = isDark ? '🌙 Dark Mode' : '☀️ Light Mode';
+        });
+
+        // Drag & Drop
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileName');
+
+        ['dragenter', 'dragover'].forEach(event => {
+            dropArea.addEventListener(event, (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(event => {
+            dropArea.addEventListener(event, (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+            });
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                fileNameDisplay.textContent = files[0].name;
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            }
+        });
+
+        // Encode Function
+        async function encode() {
+            const file = fileInput.files[0];
+            const message = document.getElementById('messageInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const output = document.getElementById('output');
+            const messageContainer = document.getElementById('messageContainer');
+
+            if (!file || !message) {
+                output.innerHTML = "<p class='text-red-500'>❌ File and message required!</p>";
+                return;
+            }
+
+            output.innerHTML = "<p class='text-yellow-500'>⏳ Encoding...</p>";
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('message', message);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('/encode', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Encoding failed');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `encoded_${file.name}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                output.innerHTML = "<p class='text-green-500'>✅ Encoded! Downloading...</p>";
+                messageContainer.classList.add('hidden');
+            } catch (error) {
+                output.innerHTML = "<p class='text-red-500'>❌ Error encoding file!</p>";
+            } finally {
+                resetForm();
+            }
+        }
+
+        // Decode Function
+        async function decode() {
+            const file = fileInput.files[0];
+            const password = document.getElementById('passwordInput').value;
+            const output = document.getElementById('output');
+            const messageContainer = document.getElementById('messageContainer');
+
+            if (!file) {
+                output.innerHTML = "<p class='text-red-500'>❌ File required!</p>";
+                return;
+            }
+
+            output.innerHTML = "<p class='text-yellow-500'>⏳ Decoding...</p>";
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('/decode', { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Decoding failed');
+                const data = await response.json();
+                output.innerHTML = "<p class='text-blue-500'>🔓 Decoded Successfully</p>";
+                messageContainer.textContent = data.message;
+                messageContainer.classList.remove('hidden');
+            } catch (error) {
+                output.innerHTML = "<p class='text-red-500'>❌ Error decoding file!</p>";
+                messageContainer.classList.add('hidden');
+            } finally {
+                resetForm();
+            }
+        }
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('messageInput').value = '';
+            document.getElementById('passwordInput').value = '';
+            fileInput.value = '';
+            fileNameDisplay.textContent = '';
+        }
+
+        // Contributors Animation
+        window.onload = () => {
+            document.querySelector('.contributors').classList.add('show');
+        };
+    </script>
+</body>
+</html>
