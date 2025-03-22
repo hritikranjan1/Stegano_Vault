@@ -15,12 +15,15 @@ import base64
 
 app = Flask(__name__)
 
+# Maximum file size (10MB)
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
+
 def convert_to_png(input_path):
     """Convert image to PNG format."""
     try:
         img = Image.open(input_path)
-        png_path = input_path.rsplit(".", 1)[0] + ".png"
-        img.save(png_path, format="PNG")
+        png_path = input_path.rsplit(".", 1)[0] + "_converted.png"
+        img.save(png_path, format="PNG", quality=95)  # High quality to preserve data
         return png_path
     except Exception as e:
         print(f"Image Conversion Error: {e}")
@@ -28,7 +31,7 @@ def convert_to_png(input_path):
 
 # IMAGE SECTION
 def encode_image(input_path, message, password):
-    """Embed a message in an image."""
+    """Embed a message in an image with robust PNG output."""
     try:
         if not input_path.lower().endswith(".png"):
             input_path = convert_to_png(input_path)
@@ -37,8 +40,8 @@ def encode_image(input_path, message, password):
         
         secret_message = f"{password}:{message}" if password else message
         encoded_img = lsb.hide(input_path, secret_message)
-        output_path = input_path.replace(".", "_encoded.", 1)
-        encoded_img.save(output_path)
+        output_path = input_path.replace(".png", "_encoded.png")
+        encoded_img.save(output_path, format="PNG", quality=95)
         return output_path
     except Exception as e:
         print(f"Image Encoding Error: {e}")
@@ -69,10 +72,9 @@ def encode_txt(input_path, message, password):
         binary_data = ''.join(format(ord(c), '08b') for c in secret_message)
         encoded_message = ''.join("\u200B" if bit == "0" else "\u200D" for bit in binary_data)
 
-        output_path = input_path.replace(".", "_encoded.", 1)
+        output_path = input_path.replace(".", "_encoded.")
         with open(output_path, "w", encoding="utf-8") as file:
-            file.write(original_content + encoded_message)
-        
+            file.write(original_content + "\n" + encoded_message)  # Add newline for clarity
         return output_path
     except Exception as e:
         print(f"TXT Encoding Error: {e}")
@@ -85,8 +87,11 @@ def decode_txt(input_path, password):
             content = file.read()
         
         binary_data = ''.join("0" if char == "\u200B" else "1" for char in content if char in ["\u200B", "\u200D"])
-        extracted_message = ''.join(chr(int(binary_data[i:i+8], 2)) for i in range(0, len(binary_data), 8))
-
+        if not binary_data:
+            return "❌ No hidden message found!"
+        
+        extracted_message = ''.join(chr(int(binary_data[i:i+8], 2)) for i in range(0, len(binary_data) - len(binary_data) % 8, 8))
+        
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
             return stored_message if stored_password == password else "❌ Incorrect password!"
@@ -94,7 +99,7 @@ def decode_txt(input_path, password):
         return extracted_message if extracted_message else "❌ No hidden message found!"
     except Exception as e:
         print(f"TXT Decoding Error: {e}")
-        return "❌ Error decoding TXT!"
+        return "❌ Error decoding text!"
 
 # DOCX SECTION
 def encode_docx(input_path, message, password):
@@ -106,7 +111,7 @@ def encode_docx(input_path, message, password):
         run = paragraph.add_run(secret_message)
         run.font.hidden = True
         
-        output_path = input_path.replace(".", "_encoded.", 1)
+        output_path = input_path.replace(".", "_encoded.")
         doc.save(output_path)
         return output_path
     except Exception as e:
@@ -140,10 +145,10 @@ def encode_pdf(input_path, message, password):
         writer = PdfWriter()
         for page in reader.pages:
             writer.add_page(page)
-        metadata = {"/Message": f"{password}:{message}" if password else message}
-        writer.add_metadata(metadata)
+        secret_message = f"{password}:{message}" if password else message
+        writer.add_metadata({"/Message": secret_message})
         
-        output_path = input_path.replace(".", "_encoded.", 1)
+        output_path = input_path.replace(".", "_encoded.")
         with open(output_path, "wb") as output_pdf:
             writer.write(output_pdf)
         return output_path
@@ -171,74 +176,65 @@ def convert_to_wav(input_path):
     """Convert audio file to WAV format."""
     try:
         audio = AudioSegment.from_file(input_path)
-        wav_path = input_path.rsplit(".", 1)[0] + ".wav"
-        audio.export(wav_path, format="wav")
+        wav_path = input_path.rsplit(".", 1)[0] + "_converted.wav"
+        audio.export(wav_path, format="wav", codec="pcm_s16le")  # Standard WAV codec
         return wav_path
     except Exception as e:
         print(f"Audio Conversion Error: {e}")
         return None
 
 def encode_audio(input_path, message, password):
-    """Embed a hidden message in an audio file."""
+    """Embed a hidden message in an audio file with robust WAV output."""
     try:
         if not input_path.lower().endswith(".wav"):
             input_path = convert_to_wav(input_path)
         if not input_path:
             return None
 
-        hashed_password = hashlib.sha256(password.encode()).hexdigest() if password else ""
-        secret_message = f"{hashed_password}:{message}" if password else message
+        secret_message = f"{password}:{message}" if password else message
+        message_bytes = secret_message.encode('utf-8')
+        message_length = len(message_bytes)
+        binary_length = format(message_length, '032b')  # 32-bit length prefix
+        binary_message = binary_length + ''.join(format(byte, '08b') for byte in message_bytes)
 
-        message_length = len(secret_message)
-        binary_length = format(message_length, '032b')
-        binary_message = binary_length + ''.join(format(ord(c), '08b') for c in secret_message)
-
-        audio = AudioSegment.from_file(input_path)
+        audio = AudioSegment.from_file(input_path, format="wav")
         samples = audio.get_array_of_samples()
-
         if len(binary_message) > len(samples):
-            return "❌ Message too large for the audio file!"
+            return "❌ Message too large for audio file!"
 
+        samples_array = samples.copy()
         for i in range(len(binary_message)):
-            samples[i] = (samples[i] & ~1) | int(binary_message[i])
+            samples_array[i] = (samples_array[i] & ~1) | int(binary_message[i])
 
-        encoded_audio = audio._spawn(samples)
-        output_path = input_path.replace(".", "_encoded.", 1)
-        encoded_audio.export(output_path, format="wav")
+        encoded_audio = audio._spawn(samples_array)
+        output_path = input_path.replace(".wav", "_encoded.wav")
+        encoded_audio.export(output_path, format="wav", codec="pcm_s16le")
         return output_path
     except Exception as e:
         print(f"Audio Encoding Error: {e}")
         return None
 
 def decode_audio(input_path, password):
-    """Extract a hidden message from an audio file."""
+    """Extract a hidden message from an audio file reliably."""
     try:
         if not input_path.lower().endswith(".wav"):
             input_path = convert_to_wav(input_path)
         if not input_path:
             return "❌ Error decoding audio!"
 
-        audio = AudioSegment.from_file(input_path)
+        audio = AudioSegment.from_file(input_path, format="wav")
         samples = audio.get_array_of_samples()
 
         binary_length = ''.join(str(sample & 1) for sample in samples[:32])
         message_length = int(binary_length, 2)
 
         binary_message = ''.join(str(sample & 1) for sample in samples[32:32 + message_length * 8])
-        extracted_message = ''
-        for i in range(0, len(binary_message), 8):
-            byte = binary_message[i:i + 8]
-            if not byte:
-                break
-            extracted_message += chr(int(byte, 2))
-
-        extracted_message = extracted_message.rstrip('\x00')
+        message_bytes = bytes(int(binary_message[i:i+8], 2) for i in range(0, len(binary_message) - len(binary_message) % 8, 8))
+        extracted_message = message_bytes.decode('utf-8')
 
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            hashed_password = hashlib.sha256(password.encode()).hexdigest() if password else ""
-            return stored_message if stored_password == hashed_password else "❌ Incorrect password!"
-
+            return stored_message if stored_password == password else "❌ Incorrect password!"
         return extracted_message if extracted_message else "❌ No hidden message found!"
     except Exception as e:
         print(f"Audio Decoding Error: {e}")
@@ -256,12 +252,8 @@ def encode_video(input_path, message, password):
         secret_message = f"{password}:{message}" if password else message
         encoded_message = base64.b64encode(secret_message.encode('utf-8')).decode('utf-8')
 
-        output_path = input_path.replace(".", "_encoded.", 1)
-
-        if not os.path.exists(input_path):
-            raise FileNotFoundError("Input video file not found")
-        with open(input_path, 'rb') as src, open(output_path, 'wb') as dst:
-            dst.write(src.read())
+        output_path = input_path.replace(".", "_encoded.")
+        shutil.copy2(input_path, output_path)  # Preserve original file metadata
 
         video = MP4(output_path)
         video['desc'] = encoded_message
@@ -272,7 +264,6 @@ def encode_video(input_path, message, password):
             raise ValueError("Encoded video file is corrupted")
         test_cap.release()
 
-        print(f"Video encoded successfully: {output_path}")
         return output_path
     except Exception as e:
         print(f"Video Encoding Error: {e}")
@@ -287,9 +278,8 @@ def decode_video(input_path, password):
         cap.release()
 
         video = MP4(input_path)
-
         if 'desc' not in video:
-            return "❌ No hidden direto message found!"
+            return "❌ No hidden message found!"
 
         encoded_message = video['desc'][0]
         decoded_bytes = base64.b64decode(encoded_message.encode('utf-8'))
@@ -298,7 +288,6 @@ def decode_video(input_path, password):
         if ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
             return stored_message if stored_password == password else "❌ Incorrect password!"
-
         return extracted_message if extracted_message else "❌ No hidden message found!"
     except Exception as e:
         print(f"Video Decoding Error: {e}")
@@ -317,13 +306,19 @@ def encode():
     if not uploaded_file or not message:
         return jsonify({"error": "File and message are required!"}), 400
 
+    # Check file size
+    uploaded_file.seek(0, os.SEEK_END)
+    if uploaded_file.tell() > MAX_FILE_SIZE:
+        return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    uploaded_file.seek(0)
+
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, uploaded_file.filename)
     uploaded_file.save(file_path)
 
     ext = os.path.splitext(file_path)[1].lower()
     output_file = None
-    
+
     try:
         if ext in [".png", ".jpg", ".jpeg"]:
             output_file = encode_image(file_path, message, password)
@@ -341,7 +336,12 @@ def encode():
             return jsonify({"error": "Unsupported file format!"}), 400
 
         if output_file and os.path.exists(output_file):
-            return send_file(output_file, as_attachment=True)
+            # Calculate checksum for integrity verification
+            with open(output_file, "rb") as f:
+                checksum = hashlib.sha256(f.read()).hexdigest()
+            response = send_file(output_file, as_attachment=True, download_name=f"encoded_{uploaded_file.filename}")
+            response.headers["X-Checksum"] = checksum
+            return response
         return jsonify({"error": "Failed to encode file!"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -354,13 +354,19 @@ def decode():
     if not uploaded_file:
         return jsonify({"error": "File is required!"}), 400
 
+    # Check file size
+    uploaded_file.seek(0, os.SEEK_END)
+    if uploaded_file.tell() > MAX_FILE_SIZE:
+        return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    uploaded_file.seek(0)
+
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, uploaded_file.filename)
     uploaded_file.save(file_path)
 
     ext = os.path.splitext(file_path)[1].lower()
     decoded_message = None
-    
+
     try:
         if ext in [".png", ".jpg", ".jpeg"]:
             decoded_message = decode_image(file_path, password)
@@ -378,10 +384,12 @@ def decode():
             return jsonify({"error": "Unsupported file format!"}), 400
 
         return jsonify({"message": decoded_message})
+    except Exception as e:
+        print(f"Decode Error: {e}")
+        return jsonify({"error": f"Failed to decode file: {str(e)}"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
-    # For Render deployment, use environment variables for host and port
     port = int(os.environ.get("PORT", 10000))  # Render defaults to 10000
     app.run(host="0.0.0.0", port=port)
