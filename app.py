@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Maximum file size (10MB)
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
+#MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
 
 # Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -358,8 +358,8 @@ def encode():
         return jsonify({"error": "File and message are required!"}), 400
 
     uploaded_file.seek(0, os.SEEK_END)
-    if uploaded_file.tell() > MAX_FILE_SIZE:
-        return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    #if uploaded_file.tell() > MAX_FILE_SIZE:
+        #return jsonify({"error": "File size exceeds 10MB limit!"}), 400
     uploaded_file.seek(0)
 
     temp_dir = tempfile.mkdtemp()
@@ -417,8 +417,8 @@ def decode():
         return jsonify({"error": "File is required!"}), 400
 
     uploaded_file.seek(0, os.SEEK_END)
-    if uploaded_file.tell() > MAX_FILE_SIZE:
-        return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    #if uploaded_file.tell() > MAX_FILE_SIZE:
+        #return jsonify({"error": "File size exceeds 10MB limit!"}), 400
     uploaded_file.seek(0)
 
     temp_dir = tempfile.mkdtemp()

@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
     <style>
-        /* [Your existing styles remain unchanged] */
         [data-theme="dark"] {
             --bg-color: #1a202c;
             --text-color: #e2e8f0;
@@ -250,7 +249,7 @@
         .contributors {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
+            justify You-content: center;
             gap: 1rem;
             margin-top: 1.5rem;
             opacity: 0;
@@ -854,12 +853,6 @@
                     return;
                 }
 
-                // Check file size (10MB limit)
-                if (file.size > 10 * 1024 * 1024) {
-                    output.innerHTML = "<p class='text-red-500'>⚠️ File too large (max 10MB)!</p>";
-                    return;
-                }
-
                 output.innerHTML = "<p class='text-yellow-500'>⏳ Hiding your secrets...</p>";
                 encodeBtn.disabled = true; // Disable button during request
                 console.log("Encoding started with file:", file.name);
@@ -922,12 +915,6 @@
                     return;
                 }
 
-                // Check file size (10MB limit)
-                if (file.size > 10 * 1024 * 1024) {
-                    output.innerHTML = "<p class='text-red-500'>⚠️ File too large (max 10MB)!</p>";
-                    return;
-                }
-
                 output.innerHTML = "<p class='text-yellow-500'>⏳ Cracking the code...</p>";
                 decodeBtn.disabled = true; // Disable button during request
                 console.log("Decoding started with file:", file.name);
@@ -970,9 +957,10 @@
                 }
             });
 
-            // Share Challenge
+            // Share Challenge (Updated with app URL)
             function shareChallenge(shareUrl) {
-                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? ${shareUrl}`;
+                const appUrl = "https://stegano-vault.onrender.com/";
+                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${shareUrl} and decode it at: ${appUrl}`;
                 if (navigator.share) {
                     navigator.share({ title: 'SteganoVault Challenge', text: shareText });
                 } else {
