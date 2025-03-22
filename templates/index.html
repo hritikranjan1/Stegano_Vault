@@ -253,6 +253,7 @@
     <!-- Main App Box -->
     <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-6 w-full max-w-xl md:max-w-2xl motion-fade mb-12" id="encode-decode">
         <h2 class="text-3xl md:text-4xl font-semibold mb-6 text-center">Encode / Decode</h2>
+        <p class="text-sm md:text-base text-center mb-4">Use the same password (if any) to decode. Share files via email or Google Drive (avoid compression apps like WhatsApp). Max file size: 10MB.</p>
 
         <!-- Drag & Drop File Upload -->
         <div id="drop-area" class="border-2 border-dashed border-[var(--scrollbar-bg)] rounded-lg p-6 text-center motion-fade">
@@ -425,8 +426,12 @@
 
             try {
                 const response = await fetch('/encode', { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Encoding failed');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Encoding failed');
+                }
                 const blob = await response.blob();
+                const checksum = response.headers.get('X-Checksum');
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -434,10 +439,10 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                output.innerHTML = "<p class='text-green-500'>✅ Encoded! Downloading...</p>";
+                output.innerHTML = `<p class='text-green-500'>✅ Encoded! Downloading... (Checksum: ${checksum})</p>`;
                 messageContainer.classList.add('hidden');
             } catch (error) {
-                output.innerHTML = "<p class='text-red-500'>❌ Error encoding file!</p>";
+                output.innerHTML = `<p class='text-red-500'>❌ ${error.message}</p>`;
             } finally {
                 resetForm();
             }
@@ -462,13 +467,16 @@
 
             try {
                 const response = await fetch('/decode', { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Decoding failed');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Decoding failed');
+                }
                 const data = await response.json();
                 output.innerHTML = "<p class='text-blue-500'>🔓 Decoded Successfully</p>";
                 messageContainer.textContent = data.message;
                 messageContainer.classList.remove('hidden');
             } catch (error) {
-                output.innerHTML = "<p class='text-red-500'>❌ Error decoding file!</p>";
+                output.innerHTML = `<p class='text-red-500'>❌ ${error.message}</p>`;
                 messageContainer.classList.add('hidden');
             } finally {
                 resetForm();
