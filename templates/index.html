@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
     <style>
-        /* Theme Variables */
+        /* [Your existing styles remain unchanged] */
         [data-theme="dark"] {
             --bg-color: #1a202c;
             --text-color: #e2e8f0;
@@ -129,7 +129,6 @@
             --glow-color: #ff00ff;
         }
 
-        /* Body/Base Styling */
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -142,7 +141,6 @@
             overflow-x: hidden;
         }
 
-        /* Animations */
         .motion-fade {
             animation: fadeIn 1s ease-in-out;
         }
@@ -161,7 +159,6 @@
             box-shadow: 0 0 20px var(--glow-color);
         }
 
-        /* Button Styling */
         .motion-button {
             transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -172,7 +169,6 @@
             box-shadow: 0 0 15px var(--glow-color);
         }
 
-        /* File Upload Box */
         #drop-area {
             border: 3px dashed var(--scrollbar-bg);
             border-radius: 15px;
@@ -190,7 +186,6 @@
             transform: scale(1.02);
         }
 
-        /* File Name Display */
         .file-name {
             margin-top: 0.75rem;
             font-weight: bold;
@@ -199,7 +194,6 @@
             word-break: break-all;
         }
 
-        /* Stealth Score */
         .stealth-score-container {
             display: flex;
             align-items: center;
@@ -217,7 +211,6 @@
             font-size: 1rem;
         }
 
-        /* Badges */
         .badges-container {
             display: flex;
             flex-wrap: wrap;
@@ -236,7 +229,6 @@
             font-size: 0.9rem;
         }
 
-        /* Share Button */
         .share-challenge {
             background: #00cc00;
             padding: 0.5rem 1rem;
@@ -255,7 +247,6 @@
             box-shadow: 0 0 15px #00ff00;
         }
 
-        /* Contributors Box */
         .contributors {
             display: flex;
             flex-wrap: wrap;
@@ -286,7 +277,6 @@
             border: 3px solid var(--button-bg);
         }
 
-        /* Background Animation */
         .background-animation {
             position: fixed;
             top: 0;
@@ -298,7 +288,6 @@
             opacity: 0.2;
         }
 
-        /* Footer */
         .footer {
             margin-top: auto;
             text-align: center;
@@ -307,7 +296,6 @@
             width: 100%;
         }
 
-        /* Important Note Box */
         .important-note {
             background-color: #fff3cd;
             color: #856404;
@@ -320,7 +308,6 @@
             margin-right: auto;
         }
 
-        /* Grid Section */
         .grid-section {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -330,7 +317,6 @@
             padding: 0 1rem;
         }
 
-        /* Grid Card Box */
         .grid-card {
             background-color: var(--card-bg);
             border-radius: 15px;
@@ -382,7 +368,6 @@
             background: var(--hover-bg);
         }
 
-        /* Decoded Output Container */
         .decoded-output-container {
             background-color: var(--message-bg);
             border-radius: 10px;
@@ -414,7 +399,6 @@
             background: var(--hover-bg);
         }
 
-        /* Popup Modal */
         .modal {
             display: none;
             position: fixed;
@@ -451,7 +435,6 @@
             color: var(--hover-bg);
         }
 
-        /* Game Styles */
         .game-container {
             background-color: var(--card-bg);
             border-radius: 15px;
@@ -476,7 +459,6 @@
             background-color: var(--hover-bg);
         }
 
-        /* Responsive Adjustments */
         @media (max-width: 480px) {
             h1 { font-size: 2rem; }
             h2 { font-size: 1.5rem; }
@@ -872,7 +854,14 @@
                     return;
                 }
 
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    output.innerHTML = "<p class='text-red-500'>⚠️ File too large (max 10MB)!</p>";
+                    return;
+                }
+
                 output.innerHTML = "<p class='text-yellow-500'>⏳ Hiding your secrets...</p>";
+                encodeBtn.disabled = true; // Disable button during request
                 console.log("Encoding started with file:", file.name);
 
                 const formData = new FormData();
@@ -883,7 +872,8 @@
                 try {
                     const response = await fetch("/encode", {
                         method: "POST",
-                        body: formData
+                        body: formData,
+                        signal: AbortSignal.timeout(30000) // 30s timeout
                     });
                     console.log("Encode response status:", response.status);
 
@@ -893,6 +883,11 @@
                     }
 
                     const blob = await response.blob();
+                    const shareUrl = response.headers.get("X-Share-URL");
+                    if (!shareUrl) {
+                        throw new Error("Share URL not provided by server");
+                    }
+
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
@@ -905,10 +900,12 @@
                     updateStealthScore(10);
                     shareButton.classList.remove('hidden');
                     shareInfoBtn.classList.remove('hidden');
-                    shareButton.onclick = () => shareChallenge(url);
+                    shareButton.onclick = () => shareChallenge(shareUrl);
                 } catch (error) {
                     console.error("Encoding error:", error);
                     output.innerHTML = `<p class='text-red-500'>❌ Signal lost—${error.message}</p>`;
+                } finally {
+                    encodeBtn.disabled = false; // Re-enable button
                 }
             });
 
@@ -925,7 +922,14 @@
                     return;
                 }
 
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    output.innerHTML = "<p class='text-red-500'>⚠️ File too large (max 10MB)!</p>";
+                    return;
+                }
+
                 output.innerHTML = "<p class='text-yellow-500'>⏳ Cracking the code...</p>";
+                decodeBtn.disabled = true; // Disable button during request
                 console.log("Decoding started with file:", file.name);
 
                 const formData = new FormData();
@@ -935,7 +939,8 @@
                 try {
                     const response = await fetch("/decode", {
                         method: "POST",
-                        body: formData
+                        body: formData,
+                        signal: AbortSignal.timeout(30000) // 30s timeout
                     });
                     console.log("Decode response status:", response.status);
                     const data = await response.json();
@@ -960,12 +965,14 @@
                     output.innerHTML = `<p class='text-red-500'>❌ Decryption failed—${error.message}</p>`;
                     decodedOutput.textContent = '';
                     decodedOutput.classList.add("hidden");
+                } finally {
+                    decodeBtn.disabled = false; // Re-enable button
                 }
             });
 
             // Share Challenge
-            function shareChallenge(url) {
-                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? ${url}`;
+            function shareChallenge(shareUrl) {
+                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? ${shareUrl}`;
                 if (navigator.share) {
                     navigator.share({ title: 'SteganoVault Challenge', text: shareText });
                 } else {
