@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, jsonify, render_template
+from flask import Flask, request, send_file, jsonify, render_template, url_for
 import os
 import tempfile
 import shutil
@@ -13,6 +13,11 @@ import numpy as np
 from mutagen.mp4 import MP4
 import base64
 import logging
+import uuid
+import time
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 app = Flask(__name__)
 
@@ -23,10 +28,46 @@ logger = logging.getLogger(__name__)
 # Maximum file size (10MB)
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
 
+# Google Drive setup
+SCOPES = ['https://www.googleapis.com/auth/drive']
+GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'  # Replace with your folder ID from Step 4
+
+def get_drive_service():
+    """Initialize Google Drive API service with service account credentials."""
+    credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
+    if not credentials_json:
+        raise ValueError("GOOGLE_CREDENTIALS environment variable not set")
+    
+    credentials = service_account.Credentials.from_service_account_info(
+        eval(credentials_json),  # Safely parse JSON string; use json.loads in production
+        scopes=SCOPES
+    )
+    return build('drive', 'v3', credentials=credentials)
+
+def upload_to_drive(file_path, file_name):
+    """Upload a file to Google Drive and return its public URL."""
+    drive_service = get_drive_service()
+    file_metadata = {
+        'name': file_name,
+        'parents': [GOOGLE_DRIVE_FOLDER_ID]
+    }
+    media = MediaFileUpload(file_path)
+    file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id, webViewLink'
+    ).execute()
+    # Make the file publicly accessible
+    drive_service.permissions().create(
+        fileId=file['id'],
+        body={'role': 'reader', 'type': 'anyone'}
+    ).execute()
+    return file['webViewLink']
+
 def convert_to_png(input_path):
     """Convert image to PNG format."""
     try:
-        img = Image.open(input_path).convert("RGB")  # Ensure RGB mode
+        img = Image.open(input_path).convert("RGB")
         png_path = input_path.rsplit(".", 1)[0] + "_converted.png"
         img.save(png_path, format="PNG", quality=95)
         return png_path
@@ -36,7 +77,6 @@ def convert_to_png(input_path):
 
 # IMAGE SECTION
 def encode_image(input_path, message, password):
-    """Embed a message in an image with robust PNG output."""
     try:
         if not input_path.lower().endswith(".png"):
             input_path = convert_to_png(input_path)
@@ -53,7 +93,6 @@ def encode_image(input_path, message, password):
         return None
 
 def decode_image(input_path, password):
-    """Extract a hidden message from an image."""
     try:
         extracted_message = lsb.reveal(input_path)
         if extracted_message:
@@ -68,7 +107,6 @@ def decode_image(input_path, password):
 
 # TEXT SECTION
 def encode_txt(input_path, message, password):
-    """Embed a hidden message in a text file using zero-width characters."""
     try:
         with open(input_path, "r", encoding="utf-8") as file:
             original_content = file.read()
@@ -86,7 +124,6 @@ def encode_txt(input_path, message, password):
         return None
 
 def decode_txt(input_path, password):
-    """Extract a hidden message from a text file using zero-width characters."""
     try:
         with open(input_path, "r", encoding="utf-8") as file:
             content = file.read()
@@ -108,7 +145,6 @@ def decode_txt(input_path, password):
 
 # DOCX SECTION
 def encode_docx(input_path, message, password):
-    """Embed a hidden message in a DOCX file using hidden text formatting."""
     try:
         doc = Document(input_path)
         secret_message = f"{password}:{message}" if password else message
@@ -124,7 +160,6 @@ def encode_docx(input_path, message, password):
         return None
 
 def decode_docx(input_path, password):
-    """Extract a hidden message from a DOCX file."""
     try:
         doc = Document(input_path)
         extracted_message = ""
@@ -144,7 +179,6 @@ def decode_docx(input_path, password):
 
 # PDF SECTION
 def encode_pdf(input_path, message, password):
-    """Embed a hidden message in a PDF file."""
     try:
         reader = PdfReader(input_path)
         writer = PdfWriter()
@@ -162,7 +196,6 @@ def encode_pdf(input_path, message, password):
         return None
 
 def decode_pdf(input_path, password):
-    """Extract a hidden message from a PDF file."""
     try:
         reader = PdfReader(input_path)
         metadata = reader.metadata
@@ -178,7 +211,6 @@ def decode_pdf(input_path, password):
 
 # AUDIO SECTION
 def convert_to_wav(input_path):
-    """Convert audio file to WAV format."""
     try:
         audio = AudioSegment.from_file(input_path)
         wav_path = input_path.rsplit(".", 1)[0] + "_converted.wav"
@@ -189,7 +221,6 @@ def convert_to_wav(input_path):
         return None
 
 def encode_audio(input_path, message, password):
-    """Embed a hidden message in an audio file with robust WAV output."""
     try:
         if not input_path.lower().endswith(".wav"):
             input_path = convert_to_wav(input_path)
@@ -220,7 +251,6 @@ def encode_audio(input_path, message, password):
         return None
 
 def decode_audio(input_path, password):
-    """Extract a hidden message from an audio file reliably."""
     try:
         if not input_path.lower().endswith(".wav"):
             input_path = convert_to_wav(input_path)
@@ -247,7 +277,6 @@ def decode_audio(input_path, password):
 
 # VIDEO SECTION
 def encode_video(input_path, message, password):
-    """Embed a hidden message in the video file's metadata."""
     try:
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
@@ -275,7 +304,6 @@ def encode_video(input_path, message, password):
         return None
 
 def decode_video(input_path, password):
-    """Extract a hidden message from the video file's metadata."""
     try:
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
@@ -340,10 +368,16 @@ def encode():
             return jsonify({"error": "Unsupported file format!"}), 400
 
         if output_file and os.path.exists(output_file):
+            # Upload to Google Drive
+            unique_id = str(uuid.uuid4())
+            final_filename = f"encoded_{unique_id}_{os.path.basename(output_file)}"
+            share_url = upload_to_drive(output_file, final_filename)
+
             with open(output_file, "rb") as f:
                 checksum = hashlib.sha256(f.read()).hexdigest()
-            response = send_file(output_file, as_attachment=True, download_name=f"encoded_{uploaded_file.filename}")
+            response = send_file(output_file, as_attachment=True, download_name=final_filename)
             response.headers["X-Checksum"] = checksum
+            response.headers["X-Share-URL"] = share_url
             return response
         return jsonify({"error": "Failed to encode file!"}), 500
     except Exception as e:
@@ -388,7 +422,6 @@ def decode():
         else:
             return jsonify({"error": "Unsupported file format!"}), 400
 
-        # Ensure the response is always JSON with a 'message' key
         return jsonify({"message": decoded_message})
     except Exception as e:
         logger.error(f"Decode Endpoint Error: {e}")
@@ -397,5 +430,5 @@ def decode():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Render defaults to 10000
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
