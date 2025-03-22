@@ -14,10 +14,10 @@ from mutagen.mp4 import MP4
 import base64
 import logging
 import uuid
-import time
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+import json
 
 app = Flask(__name__)
 
@@ -30,39 +30,57 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
 
 # Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
-GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'  # Replace with your folder ID from Step 4
+GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'  # Updated with your folder ID
 
 def get_drive_service():
     """Initialize Google Drive API service with service account credentials."""
     credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
     if not credentials_json:
-        raise ValueError("GOOGLE_CREDENTIALS environment variable not set")
+        logger.error("GOOGLE_CREDENTIALS environment variable not set")
+        return None
     
-    credentials = service_account.Credentials.from_service_account_info(
-        eval(credentials_json),  # Safely parse JSON string; use json.loads in production
-        scopes=SCOPES
-    )
-    return build('drive', 'v3', credentials=credentials)
+    try:
+        # Parse JSON string safely
+        credentials_info = json.loads(credentials_json)
+        credentials = service_account.Credentials.from_service_account_info(
+            credentials_info,
+            scopes=SCOPES
+        )
+        return build('drive', 'v3', credentials=credentials)
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(f"Failed to parse GOOGLE_CREDENTIALS: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Error initializing Drive service: {str(e)}")
+        return None
 
 def upload_to_drive(file_path, file_name):
     """Upload a file to Google Drive and return its public URL."""
     drive_service = get_drive_service()
-    file_metadata = {
-        'name': file_name,
-        'parents': [GOOGLE_DRIVE_FOLDER_ID]
-    }
-    media = MediaFileUpload(file_path)
-    file = drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id, webViewLink'
-    ).execute()
-    # Make the file publicly accessible
-    drive_service.permissions().create(
-        fileId=file['id'],
-        body={'role': 'reader', 'type': 'anyone'}
-    ).execute()
-    return file['webViewLink']
+    if not drive_service:
+        logger.error("Drive service not initialized")
+        return None
+    
+    try:
+        file_metadata = {
+            'name': file_name,
+            'parents': [GOOGLE_DRIVE_FOLDER_ID]
+        }
+        media = MediaFileUpload(file_path)
+        file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+        drive_service.permissions().create(
+            fileId=file['id'],
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+        logger.info(f"Uploaded file to Google Drive: {file['webViewLink']}")
+        return file['webViewLink']
+    except Exception as e:
+        logger.error(f"Failed to upload to Google Drive: {str(e)}")
+        return None
 
 def convert_to_png(input_path):
     """Convert image to PNG format."""
@@ -377,7 +395,11 @@ def encode():
                 checksum = hashlib.sha256(f.read()).hexdigest()
             response = send_file(output_file, as_attachment=True, download_name=final_filename)
             response.headers["X-Checksum"] = checksum
-            response.headers["X-Share-URL"] = share_url
+            if share_url:
+                response.headers["X-Share-URL"] = share_url
+            else:
+                # Fallback URL if Google Drive fails (optional)
+                response.headers["X-Share-URL"] = "https://example.com/fallback"  # Replace with a real fallback if needed
             return response
         return jsonify({"error": "Failed to encode file!"}), 500
     except Exception as e:
