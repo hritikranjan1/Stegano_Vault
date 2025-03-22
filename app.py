@@ -12,8 +12,13 @@ import hashlib
 import numpy as np
 from mutagen.mp4 import MP4
 import base64
+import logging
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Maximum file size (10MB)
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
@@ -21,12 +26,12 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
 def convert_to_png(input_path):
     """Convert image to PNG format."""
     try:
-        img = Image.open(input_path)
+        img = Image.open(input_path).convert("RGB")  # Ensure RGB mode
         png_path = input_path.rsplit(".", 1)[0] + "_converted.png"
-        img.save(png_path, format="PNG", quality=95)  # High quality to preserve data
+        img.save(png_path, format="PNG", quality=95)
         return png_path
     except Exception as e:
-        print(f"Image Conversion Error: {e}")
+        logger.error(f"Image Conversion Error: {e}")
         return None
 
 # IMAGE SECTION
@@ -44,7 +49,7 @@ def encode_image(input_path, message, password):
         encoded_img.save(output_path, format="PNG", quality=95)
         return output_path
     except Exception as e:
-        print(f"Image Encoding Error: {e}")
+        logger.error(f"Image Encoding Error: {e}")
         return None
 
 def decode_image(input_path, password):
@@ -54,12 +59,12 @@ def decode_image(input_path, password):
         if extracted_message:
             if ":" in extracted_message:
                 stored_password, stored_message = extracted_message.split(":", 1)
-                return stored_message if stored_password == password else "❌ Incorrect password!"
+                return stored_message if stored_password == password else "Incorrect password!"
             return extracted_message
-        return "❌ No hidden message found!"
+        return "No hidden message found!"
     except Exception as e:
-        print(f"Image Decoding Error: {e}")
-        return "❌ Error decoding image!"
+        logger.error(f"Image Decoding Error: {e}")
+        return f"Error decoding image: {str(e)}"
 
 # TEXT SECTION
 def encode_txt(input_path, message, password):
@@ -74,10 +79,10 @@ def encode_txt(input_path, message, password):
 
         output_path = input_path.replace(".", "_encoded.")
         with open(output_path, "w", encoding="utf-8") as file:
-            file.write(original_content + "\n" + encoded_message)  # Add newline for clarity
+            file.write(original_content + "\n" + encoded_message)
         return output_path
     except Exception as e:
-        print(f"TXT Encoding Error: {e}")
+        logger.error(f"TXT Encoding Error: {e}")
         return None
 
 def decode_txt(input_path, password):
@@ -88,18 +93,18 @@ def decode_txt(input_path, password):
         
         binary_data = ''.join("0" if char == "\u200B" else "1" for char in content if char in ["\u200B", "\u200D"])
         if not binary_data:
-            return "❌ No hidden message found!"
+            return "No hidden message found!"
         
         extracted_message = ''.join(chr(int(binary_data[i:i+8], 2)) for i in range(0, len(binary_data) - len(binary_data) % 8, 8))
         
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            return stored_message if stored_password == password else "❌ Incorrect password!"
+            return stored_message if stored_password == password else "Incorrect password!"
         
-        return extracted_message if extracted_message else "❌ No hidden message found!"
+        return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
-        print(f"TXT Decoding Error: {e}")
-        return "❌ Error decoding text!"
+        logger.error(f"TXT Decoding Error: {e}")
+        return f"Error decoding text: {str(e)}"
 
 # DOCX SECTION
 def encode_docx(input_path, message, password):
@@ -115,7 +120,7 @@ def encode_docx(input_path, message, password):
         doc.save(output_path)
         return output_path
     except Exception as e:
-        print(f"DOCX Encoding Error: {e}")
+        logger.error(f"DOCX Encoding Error: {e}")
         return None
 
 def decode_docx(input_path, password):
@@ -130,12 +135,12 @@ def decode_docx(input_path, password):
         
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            return stored_message if stored_password == password else "❌ Incorrect password!"
+            return stored_message if stored_password == password else "Incorrect password!"
         
-        return extracted_message if extracted_message else "❌ No hidden message found!"
+        return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
-        print(f"DOCX Decoding Error: {e}")
-        return "❌ Error decoding DOCX!"
+        logger.error(f"DOCX Decoding Error: {e}")
+        return f"Error decoding DOCX: {str(e)}"
 
 # PDF SECTION
 def encode_pdf(input_path, message, password):
@@ -153,7 +158,7 @@ def encode_pdf(input_path, message, password):
             writer.write(output_pdf)
         return output_path
     except Exception as e:
-        print(f"PDF Encoding Error: {e}")
+        logger.error(f"PDF Encoding Error: {e}")
         return None
 
 def decode_pdf(input_path, password):
@@ -165,11 +170,11 @@ def decode_pdf(input_path, password):
         
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            return stored_message if stored_password == password else "❌ Incorrect password!"
-        return extracted_message if extracted_message else "❌ No hidden message found!"
+            return stored_message if stored_password == password else "Incorrect password!"
+        return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
-        print(f"PDF Decoding Error: {e}")
-        return "❌ Error decoding PDF!"
+        logger.error(f"PDF Decoding Error: {e}")
+        return f"Error decoding PDF: {str(e)}"
 
 # AUDIO SECTION
 def convert_to_wav(input_path):
@@ -177,10 +182,10 @@ def convert_to_wav(input_path):
     try:
         audio = AudioSegment.from_file(input_path)
         wav_path = input_path.rsplit(".", 1)[0] + "_converted.wav"
-        audio.export(wav_path, format="wav", codec="pcm_s16le")  # Standard WAV codec
+        audio.export(wav_path, format="wav", codec="pcm_s16le")
         return wav_path
     except Exception as e:
-        print(f"Audio Conversion Error: {e}")
+        logger.error(f"Audio Conversion Error: {e}")
         return None
 
 def encode_audio(input_path, message, password):
@@ -194,13 +199,13 @@ def encode_audio(input_path, message, password):
         secret_message = f"{password}:{message}" if password else message
         message_bytes = secret_message.encode('utf-8')
         message_length = len(message_bytes)
-        binary_length = format(message_length, '032b')  # 32-bit length prefix
+        binary_length = format(message_length, '032b')
         binary_message = binary_length + ''.join(format(byte, '08b') for byte in message_bytes)
 
         audio = AudioSegment.from_file(input_path, format="wav")
         samples = audio.get_array_of_samples()
         if len(binary_message) > len(samples):
-            return "❌ Message too large for audio file!"
+            return "Message too large for audio file!"
 
         samples_array = samples.copy()
         for i in range(len(binary_message)):
@@ -211,7 +216,7 @@ def encode_audio(input_path, message, password):
         encoded_audio.export(output_path, format="wav", codec="pcm_s16le")
         return output_path
     except Exception as e:
-        print(f"Audio Encoding Error: {e}")
+        logger.error(f"Audio Encoding Error: {e}")
         return None
 
 def decode_audio(input_path, password):
@@ -220,7 +225,7 @@ def decode_audio(input_path, password):
         if not input_path.lower().endswith(".wav"):
             input_path = convert_to_wav(input_path)
         if not input_path:
-            return "❌ Error decoding audio!"
+            return "Error decoding audio!"
 
         audio = AudioSegment.from_file(input_path, format="wav")
         samples = audio.get_array_of_samples()
@@ -234,11 +239,11 @@ def decode_audio(input_path, password):
 
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            return stored_message if stored_password == password else "❌ Incorrect password!"
-        return extracted_message if extracted_message else "❌ No hidden message found!"
+            return stored_message if stored_password == password else "Incorrect password!"
+        return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
-        print(f"Audio Decoding Error: {e}")
-        return "❌ Error decoding audio!"
+        logger.error(f"Audio Decoding Error: {e}")
+        return f"Error decoding audio: {str(e)}"
 
 # VIDEO SECTION
 def encode_video(input_path, message, password):
@@ -253,7 +258,7 @@ def encode_video(input_path, message, password):
         encoded_message = base64.b64encode(secret_message.encode('utf-8')).decode('utf-8')
 
         output_path = input_path.replace(".", "_encoded.")
-        shutil.copy2(input_path, output_path)  # Preserve original file metadata
+        shutil.copy2(input_path, output_path)
 
         video = MP4(output_path)
         video['desc'] = encoded_message
@@ -266,7 +271,7 @@ def encode_video(input_path, message, password):
 
         return output_path
     except Exception as e:
-        print(f"Video Encoding Error: {e}")
+        logger.error(f"Video Encoding Error: {e}")
         return None
 
 def decode_video(input_path, password):
@@ -279,7 +284,7 @@ def decode_video(input_path, password):
 
         video = MP4(input_path)
         if 'desc' not in video:
-            return "❌ No hidden message found!"
+            return "No hidden message found!"
 
         encoded_message = video['desc'][0]
         decoded_bytes = base64.b64decode(encoded_message.encode('utf-8'))
@@ -287,11 +292,11 @@ def decode_video(input_path, password):
 
         if ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
-            return stored_message if stored_password == password else "❌ Incorrect password!"
-        return extracted_message if extracted_message else "❌ No hidden message found!"
+            return stored_message if stored_password == password else "Incorrect password!"
+        return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
-        print(f"Video Decoding Error: {e}")
-        return "❌ Error decoding video!"
+        logger.error(f"Video Decoding Error: {e}")
+        return f"Error decoding video: {str(e)}"
 
 @app.route("/")
 def index():
@@ -306,7 +311,6 @@ def encode():
     if not uploaded_file or not message:
         return jsonify({"error": "File and message are required!"}), 400
 
-    # Check file size
     uploaded_file.seek(0, os.SEEK_END)
     if uploaded_file.tell() > MAX_FILE_SIZE:
         return jsonify({"error": "File size exceeds 10MB limit!"}), 400
@@ -336,13 +340,15 @@ def encode():
             return jsonify({"error": "Unsupported file format!"}), 400
 
         if output_file and os.path.exists(output_file):
-            # Calculate checksum for integrity verification
             with open(output_file, "rb") as f:
                 checksum = hashlib.sha256(f.read()).hexdigest()
             response = send_file(output_file, as_attachment=True, download_name=f"encoded_{uploaded_file.filename}")
             response.headers["X-Checksum"] = checksum
             return response
         return jsonify({"error": "Failed to encode file!"}), 500
+    except Exception as e:
+        logger.error(f"Encode Endpoint Error: {e}")
+        return jsonify({"error": f"Encoding failed: {str(e)}"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -354,7 +360,6 @@ def decode():
     if not uploaded_file:
         return jsonify({"error": "File is required!"}), 400
 
-    # Check file size
     uploaded_file.seek(0, os.SEEK_END)
     if uploaded_file.tell() > MAX_FILE_SIZE:
         return jsonify({"error": "File size exceeds 10MB limit!"}), 400
@@ -383,13 +388,14 @@ def decode():
         else:
             return jsonify({"error": "Unsupported file format!"}), 400
 
+        # Ensure the response is always JSON with a 'message' key
         return jsonify({"message": decoded_message})
     except Exception as e:
-        print(f"Decode Error: {e}")
+        logger.error(f"Decode Endpoint Error: {e}")
         return jsonify({"error": f"Failed to decode file: {str(e)}"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # Render defaults to 10000
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)

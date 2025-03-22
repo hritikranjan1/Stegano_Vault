@@ -355,8 +355,8 @@
             background: var(--hover-bg);
         }
 
-        /* Message Container */
-        .message-container {
+        /* Decoded Output Container */
+        .decoded-output-container {
             background-color: var(--message-bg);
             border-radius: 10px;
             padding: 15px;
@@ -369,20 +369,20 @@
             font-size: 1.1rem;
         }
 
-        .message-container::-webkit-scrollbar {
+        .decoded-output-container::-webkit-scrollbar {
             width: 10px;
         }
 
-        .message-container::-webkit-scrollbar-track {
+        .decoded-output-container::-webkit-scrollbar-track {
             background: var(--bg-color);
         }
 
-        .message-container::-webkit-scrollbar-thumb {
+        .decoded-output-container::-webkit-scrollbar-thumb {
             background: var(--scrollbar-bg);
             border-radius: 5px;
         }
 
-        .message-container::-webkit-scrollbar-thumb:hover {
+        .decoded-output-container::-webkit-scrollbar-thumb:hover {
             background: var(--hover-bg);
         }
 
@@ -544,7 +544,7 @@
         </div>
 
         <div id="output" class="mt-8 text-center text-xl"></div>
-        <div id="messageContainer" class="message-container hidden"></div>
+        <div id="decodedOutput" class="decoded-output-container hidden"></div>
         <div id="badges" class="mt-4 text-center"></div>
         <button id="share-challenge" class="share-challenge mt-4 hidden">Share Challenge</button>
     </div>
@@ -782,6 +782,15 @@
                 }
             }
 
+            // Reset Inputs Function (Does not affect output)
+            function resetInputs() {
+                document.getElementById("messageInput").value = '';
+                document.getElementById("passwordInput").value = '';
+                fileInput.value = '';
+                fileNameDisplay.textContent = '';
+                document.getElementById("share-challenge").classList.add('hidden');
+            }
+
             // Encode Function
             const encodeBtn = document.getElementById('encodeBtn');
             encodeBtn.addEventListener('click', async () => {
@@ -792,25 +801,24 @@
                 const shareButton = document.getElementById("share-challenge");
 
                 if (!file || !message) {
-                    alert("Please select a file and enter a message!");
                     output.innerHTML = "<p class='text-red-500'>⚠️ Missing file or message, Agent!</p>";
                     return;
                 }
+
+                output.innerHTML = "<p class='text-yellow-500'>⏳ Hiding your secrets...</p>";
+                console.log("Encoding started with file:", file.name);
 
                 const formData = new FormData();
                 formData.append("file", file);
                 formData.append("message", message);
                 formData.append("password", password);
 
-                output.innerHTML = "<p class='text-yellow-500'>⏳ Hiding your secrets...</p>";
-                console.log("Encoding started with file:", file.name);
-
                 try {
                     const response = await fetch("/encode", {
                         method: "POST",
                         body: formData
                     });
-                    console.log("Response status:", response.status);
+                    console.log("Encode response status:", response.status);
 
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -826,15 +834,13 @@
                     a.click();
                     document.body.removeChild(a);
                     output.innerHTML = "<p class='text-green-500'>✅ Mission complete—secret secured!</p>";
-                    document.getElementById("messageContainer").classList.add("hidden");
+                    resetInputs();
                     updateStealthScore(10);
                     shareButton.classList.remove('hidden');
                     shareButton.onclick = () => shareChallenge(url);
-                    setTimeout(resetForm, 1000);
                 } catch (error) {
                     console.error("Encoding error:", error);
                     output.innerHTML = `<p class='text-red-500'>❌ Signal lost—${error.message}</p>`;
-                    setTimeout(resetForm, 1000);
                 }
             });
 
@@ -844,44 +850,48 @@
                 const file = fileInput.files[0];
                 const password = document.getElementById("passwordInput").value;
                 const output = document.getElementById("output");
-                const messageContainer = document.getElementById("messageContainer");
+                const decodedOutput = document.getElementById("decodedOutput");
 
                 if (!file) {
-                    alert("Please select a file to decode!");
                     output.innerHTML = "<p class='text-red-500'>⚠️ No file detected, Agent!</p>";
                     return;
                 }
 
+                output.innerHTML = "<p class='text-yellow-500'>⏳ Cracking the code...</p>";
+                console.log("Decoding started with file:", file.name);
+
                 const formData = new FormData();
                 formData.append("file", file);
                 formData.append("password", password);
-
-                output.innerHTML = "<p class='text-yellow-500'>⏳ Cracking the code...</p>";
-                console.log("Decoding started with file:", file.name);
 
                 try {
                     const response = await fetch("/decode", {
                         method: "POST",
                         body: formData
                     });
-                    console.log("Response status:", response.status);
+                    console.log("Decode response status:", response.status);
+                    const data = await response.json();
+                    console.log("Decoded data:", data);
 
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || "Decoding failed");
+                        throw new Error(data.error || "Decoding failed");
                     }
 
-                    const data = await response.json();
-                    output.innerHTML = "<p class='text-blue-500'>🔓 Intel retrieved successfully!</p>";
-                    messageContainer.textContent = data.message;
-                    messageContainer.classList.remove("hidden");
-                    updateStealthScore(15);
-                    setTimeout(resetForm, 1000);
+                    if (data.message) {
+                        output.innerHTML = "<p class='text-blue-500'>🔓 Intel retrieved successfully!</p>";
+                        decodedOutput.textContent = data.message;
+                        decodedOutput.classList.remove("hidden");
+                        updateStealthScore(15);
+                    } else {
+                        throw new Error("No message returned from server");
+                    }
+
+                    resetInputs();
                 } catch (error) {
                     console.error("Decoding error:", error);
                     output.innerHTML = `<p class='text-red-500'>❌ Decryption failed—${error.message}</p>`;
-                    messageContainer.classList.add("hidden");
-                    setTimeout(resetForm, 1000);
+                    decodedOutput.textContent = '';
+                    decodedOutput.classList.add("hidden");
                 }
             });
 
@@ -893,18 +903,6 @@
                 } else {
                     prompt('Copy this to share your challenge:', shareText);
                 }
-            }
-
-            // Reset Form Function
-            function resetForm() {
-                document.getElementById("messageInput").value = '';
-                document.getElementById("passwordInput").value = '';
-                fileInput.value = '';
-                fileNameDisplay.textContent = '';
-                document.getElementById("output").innerHTML = '';
-                document.getElementById("messageContainer").textContent = '';
-                document.getElementById("messageContainer").classList.add("hidden");
-                document.getElementById("share-challenge").classList.add('hidden');
             }
 
             // Popup Modal Functionality
