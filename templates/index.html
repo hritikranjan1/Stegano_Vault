@@ -137,8 +137,9 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            padding: 0.1rem;
+            padding: 0.5rem;
             font-family: 'Courier New', monospace;
+            overflow-x: hidden;
         }
 
         /* Animations */
@@ -175,9 +176,12 @@
         #drop-area {
             border: 3px dashed var(--scrollbar-bg);
             border-radius: 15px;
-            padding: 20px;
+            padding: 1rem;
             transition: all 0.3s ease;
             background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 100%);
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
         }
 
         #drop-area.dragover {
@@ -188,43 +192,62 @@
 
         /* File Name Display */
         .file-name {
-            margin-top: 12px;
+            margin-top: 0.75rem;
             font-weight: bold;
             color: var(--text-color);
-            font-size: 1.1rem;
+            font-size: 1rem;
             word-break: break-all;
         }
 
         /* Stealth Score */
+        .stealth-score-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+
         .stealth-score {
             display: inline-block;
-            margin: 10px auto;
             background: var(--card-bg);
-            padding: 10px 20px;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
             box-shadow: 0 0 10px var(--glow-color);
             font-size: 1rem;
         }
 
         /* Badges */
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
         .badge {
             display: inline-block;
             background: var(--button-bg);
             color: white;
-            padding: 5px 10px;
+            padding: 0.3rem 0.6rem;
             border-radius: 15px;
-            margin: 5px;
             font-size: 0.9rem;
         }
 
         /* Share Button */
         .share-challenge {
             background: #00cc00;
-            padding: 10px 20px;
+            padding: 0.5rem 1rem;
             border-radius: 8px;
             color: white;
             cursor: pointer;
             transition: all 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+            margin: 0.5rem auto;
+            display: block;
         }
 
         .share-challenge:hover {
@@ -235,9 +258,10 @@
         /* Contributors Box */
         .contributors {
             display: flex;
-            justify-content: center;
             flex-wrap: wrap;
-            margin-top: 30px;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
             opacity: 0;
             transform: translateY(-20px);
             transition: opacity 0.5s ease, transform 0.5s ease;
@@ -249,20 +273,22 @@
         }
 
         .contributor {
-            margin: 15px;
             text-align: center;
+            flex: 1 1 100%;
+            max-width: 200px;
         }
 
         .contributor img {
-            width: 120px;
-            height: 120px;
+            width: 100%;
+            max-width: 120px;
+            height: auto;
             border-radius: 50%;
             border: 3px solid var(--button-bg);
         }
 
         /* Background Animation */
         .background-animation {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -276,18 +302,19 @@
         .footer {
             margin-top: auto;
             text-align: center;
-            padding: 30px;
+            padding: 1.5rem;
             background: rgba(0, 0, 0, 0.2);
+            width: 100%;
         }
 
         /* Important Note Box */
         .important-note {
             background-color: #fff3cd;
             color: #856404;
-            padding: 20px;
+            padding: 1rem;
             border-left: 4px solid #ffc107;
             border-radius: 4px;
-            margin-top: 30px;
+            margin-top: 1.5rem;
             max-width: 900px;
             margin-left: auto;
             margin-right: auto;
@@ -296,18 +323,18 @@
         /* Grid Section */
         .grid-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 30px;
-            margin: 50px auto;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem auto;
             max-width: 1400px;
-            padding: 0 30px;
+            padding: 0 1rem;
         }
 
         /* Grid Card Box */
         .grid-card {
             background-color: var(--card-bg);
             border-radius: 15px;
-            padding: 25px;
+            padding: 1.5rem;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
             max-height: 400px;
@@ -320,22 +347,22 @@
         }
 
         .grid-card h3 {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 0.75rem;
             color: var(--text-color);
         }
 
         .grid-card p {
             color: var(--text-color);
             opacity: 0.9;
-            font-size: 1.05rem;
-            margin-bottom: 12px;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .grid-card ul {
-            margin-left: 20px;
-            margin-bottom: 12px;
+            margin-left: 1.25rem;
+            margin-bottom: 0.75rem;
         }
 
         .grid-card::-webkit-scrollbar {
@@ -359,14 +386,15 @@
         .decoded-output-container {
             background-color: var(--message-bg);
             border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 1rem;
+            margin-top: 1rem;
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--scrollbar-bg);
             color: var(--text-color);
             white-space: pre-wrap;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            width: 100%;
         }
 
         .decoded-output-container::-webkit-scrollbar {
@@ -401,11 +429,11 @@
 
         .modal-content {
             background-color: var(--card-bg);
-            margin: 15% auto;
-            padding: 1.5rem;
+            margin: 10% auto;
+            padding: 1rem;
             border-radius: 15px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             box-shadow: 0 0 20px var(--glow-color);
             color: var(--text-color);
         }
@@ -427,10 +455,11 @@
         .game-container {
             background-color: var(--card-bg);
             border-radius: 15px;
-            padding: 20px;
+            padding: 1rem;
             text-align: center;
+            width: 100%;
             max-width: 500px;
-            margin: 20px auto;
+            margin: 1rem auto;
         }
 
         .game-target {
@@ -448,22 +477,44 @@
         }
 
         /* Responsive Adjustments */
-        @media (max-width: 640px) {
-            h1 { font-size: 2.5rem; }
-            h2 { font-size: 1.75rem; }
+        @media (max-width: 480px) {
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
             h3 { font-size: 1.25rem; }
             .grid-section { grid-template-columns: 1fr; }
-            #drop-area { padding: 8px; }
+            #drop-area { padding: 0.5rem; }
             .motion-button { padding: 0.5rem 1rem; font-size: 0.875rem; }
-            .contributor img { width: 80px; height: 80px; }
-            .modal-content { margin: 10% auto; width: 95%; }
-            .stealth-score { font-size: 0.8rem; padding: 5px 10px; }
+            .contributor { max-width: 150px; }
+            .contributor img { max-width: 80px; }
+            .stealth-score { font-size: 0.875rem; padding: 0.4rem 0.8rem; }
+            .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; }
+            .share-challenge { padding: 0.4rem 0.8rem; font-size: 0.875rem; }
+            .game-container { padding: 0.75rem; }
+            .game-target { width: 40px; height: 40px; }
+            .modal-content { margin: 15% auto; padding: 0.75rem; }
         }
 
-        @media (min-width: 641px) and (max-width: 1024px) {
-            h1 { font-size: 3.5rem; }
-            h2 { font-size: 2.25rem; }
-            .grid-section { grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 481px) and (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 1.75rem; }
+            .grid-section { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+            .contributor { max-width: 180px; }
+            .contributor img { max-width: 100px; }
+            .stealth-score { font-size: 0.9rem; }
+            .badge { font-size: 0.8rem; }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            h1 { font-size: 3rem; }
+            h2 { font-size: 2rem; }
+            .grid-section { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+            .contributor { max-width: 200px; }
+        }
+
+        @media (min-width: 1025px) {
+            h1 { font-size: 4rem; }
+            h2 { font-size: 2.5rem; }
+            .contributor { flex: 0 1 25%; }
         }
     </style>
 </head>
@@ -471,9 +522,9 @@
     <div class="background-animation"></div>
 
     <!-- Navigation Bar -->
-    <nav class="w-full flex justify-between items-center mb-6 mt-4 px-4">
-        <div class="flex items-center">
-            <select id="theme-toggle" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base">
+    <nav class="w-full flex flex-col sm:flex-row justify-between items-center mb-4 mt-2 px-2 sm:px-4">
+        <div class="flex flex-col sm:flex-row items-center gap-2 mb-2 sm:mb-0">
+            <select id="theme-toggle" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base w-full sm:w-auto">
                 <option value="dark">🌙 Dark</option>
                 <option value="light">☀️ Light</option>
                 <option value="cyberpunk">💾 Cyberpunk</option>
@@ -486,104 +537,149 @@
                 <option value="minimal-zen">🧘 Minimal Zen</option>
                 <option value="glitchcore">📺 Glitchcore</option>
             </select>
-            <a href="#steganovault" class="text-xl font-bold mx-3 bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
+            <a href="#steganovault" class="text-lg sm:text-xl font-bold bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors glow-effect w-full sm:w-auto text-center">
                 SteganoVault
             </a>
         </div>
-        <div class="space-x-3">
-            <a href="#encode-decode" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
-                Encode/Decode
-            </a>
-            <a href="#how-it-works" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
-                How It Works
-            </a>
-            <a href="#fun-activities" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
-                Fun Activities
-            </a>
-            <a href="#contributors" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
-                Contributors
-            </a>
-            <a href="https://github.com/hritikranjan1/SteganoVault.git" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-base glow-effect">
-                GitHub
-            </a>
+        <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
+            <a href="#encode-decode" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Encode/Decode</a>
+            <a href="#how-it-works" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">How It Works</a>
+            <a href="#fun-activities" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Fun Activities</a>
+            <a href="#contributors" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Contributors</a>
+            <a href="https://github.com/hritikranjan1/SteganoVault.git" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">GitHub</a>
         </div>
     </nav>
 
     <!-- Stealth Score -->
-    <div class="stealth-score">Stealth Score: <span id="stealth-score">0</span></div>
+    <div class="stealth-score-container">
+        <div class="stealth-score">Stealth Score: <span id="stealth-score">0</span></div>
+        <button id="stealthScoreInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg">ℹ️</button>
+    </div>
 
-    <h1 class="text-5xl font-bold mb-8 motion-fade glow-effect" id="steganovault">🔐 SteganoVault</h1>
-    <p class="text-center mb-8 text-lg">Steganography Tool - Hide and Extract Secret Messages in Files (images, text files, PDFs, DOCX files, audio, and video)</p>
+    <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 motion-fade glow-effect text-center" id="steganovault">🔐 SteganoVault</h1>
+    <p class="text-center mb-6 text-sm sm:text-base md:text-lg px-2">Steganography Tool - Hide and Extract Secret Messages in Files (images, text files, PDFs, DOCX files, audio, and video)</p>
 
     <!-- Main App Box -->
-    <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-6 w-full max-w-2xl motion-fade mb-12 glow-effect" id="encode-decode">
-        <div class="flex items-center justify-between mb-8">
-            <h2 class="text-4xl font-semibold flex-1 text-center">Encode / Decode</h2>
-            <button id="infoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-xl">ℹ️</button>
+    <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-4 sm:p-6 w-full max-w-lg sm:max-w-2xl motion-fade mb-8 glow-effect" id="encode-decode">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-semibold flex-1 text-center">Encode / Decode</h2>
+            <button id="infoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg sm:text-xl">ℹ️</button>
         </div>
 
         <!-- Drag & Drop File Upload -->
         <div id="drop-area" class="text-center motion-fade">
-            <p class="mb-4 text-xl">📂 Drag & Drop your file here</p>
+            <p class="mb-3 text-sm sm:text-lg md:text-xl">📂 Drag & Drop your file here</p>
             <input type="file" id="fileInput" class="hidden" accept=".png,.jpg,.jpeg,.txt,.mp3,.wav,.pdf,.docx,.mp4,.avi,.mov">
-            <button onclick="document.getElementById('fileInput').click()" class="bg-[var(--button-bg)] text-white px-6 py-4 rounded hover:bg-[var(--hover-bg)] transition-colors motion-button text-xl glow-effect">
+            <button onclick="document.getElementById('fileInput').click()" class="bg-[var(--button-bg)] text-white px-4 py-2 sm:px-6 sm:py-4 rounded hover:bg-[var(--hover-bg)] transition-colors motion-button text-sm sm:text-lg md:text-xl glow-effect w-full sm:w-auto">
                 Select File
             </button>
             <div id="fileName" class="file-name"></div>
         </div>
 
-        <label class="block mt-8 text-xl">Enter Message:</label>
-        <input type="text" id="messageInput" class="w-full p-4 border rounded bg-transparent text-xl" placeholder="Hidden message">
+        <label class="block mt-6 text-sm sm:text-lg md:text-xl">Enter Message:</label>
+        <input type="text" id="messageInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Hidden message">
 
-        <label class="block mt-8 text-xl">Optional Password:</label>
-        <input type="password" id="passwordInput" class="w-full p-4 border rounded bg-transparent text-xl" placeholder="Enter password (optional)">
+        <label class="block mt-6 text-sm sm:text-lg md:text-xl">Optional Password:</label>
+        <input type="password" id="passwordInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter password (optional)">
 
-        <div class="flex space-x-4 mt-8">
-            <button id="encodeBtn" class="bg-green-500 text-white px-6 py-4 rounded w-full motion-button hover:bg-green-600 text-xl glow-effect">🔒 Encode</button>
-            <button id="decodeBtn" class="bg-red-500 text-white px-6 py-4 rounded w-full motion-button hover:bg-red-600 text-xl glow-effect">🔓 Decode</button>
+        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
+            <button id="encodeBtn" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect">🔒 Encode</button>
+            <button id="decodeBtn" class="bg-red-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-red-600 text-sm sm:text-lg md:text-xl glow-effect">🔓 Decode</button>
         </div>
 
-        <div id="output" class="mt-8 text-center text-xl"></div>
+        <div id="output" class="mt-6 text-center text-sm sm:text-lg md:text-xl"></div>
         <div id="decodedOutput" class="decoded-output-container hidden"></div>
-        <div id="badges" class="mt-4 text-center"></div>
-        <button id="share-challenge" class="share-challenge mt-4 hidden">Share Challenge</button>
+        <div class="badges-container" id="badges"></div>
+        <button id="share-challenge" class="share-challenge hidden">Share Challenge</button>
+        <div class="flex justify-center gap-2 mt-2">
+            <button id="badgesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden">ℹ️</button>
+            <button id="shareChallengeInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden">ℹ️</button>
+        </div>
     </div>
 
-    <!-- Popup Modal -->
+    <!-- Popup Modals -->
     <div id="infoModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
-            <h3 class="text-xl font-semibold mb-4">How to Share Your Encoded File</h3>
-            <p class="text-base">
-                Share the downloaded encoded file with your friend via a method that preserves the file as-is, such as:
-            </p>
-            <ul class="list-disc ml-5 mt-2 mb-4">
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">How to Share Your Encoded File</h3>
+            <p class="text-sm sm:text-base">Share the downloaded encoded file with your friend via a method that preserves the file as-is, such as:</p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
                 <li><b>Google Drive:</b> Upload the file and share the link.</li>
                 <li><b>Email:</b> Attach the file to an email.</li>
             </ul>
-            <p class="text-base">
-                <b>Important:</b> Avoid compression-based apps like WhatsApp, as they may alter the file and break the hidden message.
-            </p>
-            <p class="text-base mt-2">
-                If you used a password, share it with your friend separately (e.g., via a secure chat).
-            </p>
+            <p class="text-sm sm:text-base"><b>Important:</b> Avoid compression-based apps like WhatsApp, as they may alter the file and break the hidden message.</p>
+            <p class="text-sm sm:text-base mt-2">If you used a password, share it with your friend separately (e.g., via a secure chat).</p>
+        </div>
+    </div>
+
+    <div id="stealthScoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Stealth Score</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> The Stealth Score is a fun way to track your progress as a secret agent using SteganoVault. It increases as you encode, decode, or play games.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li>Encoding a file: +10 points</li>
+                <li>Decoding a file: +15 points</li>
+                <li>Clicking the target in Spy Target Practice: +5 points per click</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Your score reflects your skill level. Higher scores unlock badges like Rookie Spy, Codebreaker, and Shadow Agent!</p>
+        </div>
+    </div>
+
+    <div id="badgesModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Rookie Spy & Codebreaker Badges</h3>
+            <p class="text-sm sm:text-base"><b>What are they?</b> Badges are achievements you earn based on your Stealth Score, showing off your steganography prowess.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How they work:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li><b>Rookie Spy:</b> Earned at 10 points. You’re just starting your spy journey!</li>
+                <li><b>Codebreaker:</b> Earned at 50 points. You’ve cracked some tough secrets!</li>
+                <li><b>Shadow Agent:</b> Earned at 100 points. You’re a master of stealth!</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Badges appear below the encode/decode section as you reach milestones. Collect them all to become a legendary agent!</p>
+        </div>
+    </div>
+
+    <div id="shareChallengeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Share Challenge</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> Share Challenge lets you send your encoded file to friends, challenging them to decode your secret message.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li>After encoding, click "Share Challenge" to generate a shareable link or text.</li>
+                <li>On supported devices, it uses the native share feature; otherwise, it provides a text prompt to copy.</li>
+                <li>Your friend downloads the file and uses SteganoVault to decode it.</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Make sure to share the password separately if you used one. Avoid platforms that compress files (e.g., WhatsApp) to keep the message intact.</p>
+        </div>
+    </div>
+
+    <div id="funActivitiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Fun Activities</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> Fun Activities include interactive games to enhance your SteganoVault experience, like Spy Target Practice.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li><b>Spy Target Practice:</b> Click the moving target as many times as possible in 10 seconds.</li>
+                <li>Each click earns 5 Stealth Score points.</li>
+                <li>The game resets after 10 seconds, showing your final score.</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> It’s a playful way to test your reflexes and boost your score. More activities may be added in the future!</p>
         </div>
     </div>
 
     <!-- How It Works Section -->
-    <h3 class="text-3xl font-semibold mb-6 motion-fade glow-effect" id="how-it-works">How It Works</h3>
+    <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center" id="how-it-works">How It Works</h3>
     <div class="grid-section" id="how-it-works">
         <div class="grid-card motion-fade glow-effect">
             <h3>What is Steganography?</h3>
-            <p>
-                Steganography is the art and science of hiding secret information inside a non-suspicious file, message, or medium. It ensures that the hidden data remains undetectable to anyone who is not aware of its presence.
-            </p>
-
+            <p>Steganography is the art and science of hiding secret information inside a non-suspicious file, message, or medium. It ensures that the hidden data remains undetectable to anyone who is not aware of its presence.</p>
             <h3>🔹 How It Works?</h3>
-            <p>
-                Unlike encryption, which scrambles a message to make it unreadable, steganography hides the message **within another file** (such as an image, audio, video, or text file) so that no one suspects its existence.
-            </p>
-
+            <p>Unlike encryption, which scrambles a message to make it unreadable, steganography hides the message **within another file** (such as an image, audio, video, or text file) so that no one suspects its existence.</p>
             <h3>🔹 Common Techniques</h3>
             <ul>
                 <li><b>LSB (Least Significant Bit) Steganography:</b> Hides data in the least significant bits of an image or audio file.</li>
@@ -592,80 +688,49 @@
                 <li><b>Text Steganography:</b> Uses invisible characters (spaces, Unicode characters) to hide information in text.</li>
                 <li><b>Video Steganography:</b> Stores secret data in video frames.</li>
             </ul>
-
-            <h3>🔹 Applications of Steganography</h3>
+            <h3>🔹 Applications</h3>
             <ul>
                 <li>🔐 <b>Secure Communication:</b> Hiding confidential messages in media files.</li>
                 <li>🕵️ <b>Cybersecurity:</b> Protecting sensitive data from hackers.</li>
                 <li>🎨 <b>Watermarking:</b> Embedding copyright information in images or videos.</li>
                 <li>📡 <b>Covert Operations:</b> Used in military and intelligence communication.</li>
             </ul>
-
-            <p>
-                Steganography is widely used in <b>cybersecurity, digital forensics, and secure communications</b>, ensuring privacy and confidentiality.
-            </p>
         </div>
-
         <div class="grid-card motion-fade glow-effect">
-            <h3>🛠️ Technical Process of SteganoVault</h3>
-            <p>
-                Steganography works by embedding the secret message into the carrier file (e.g., image, audio, video) using techniques like LSB (Least Significant Bit) for images or frequency domain manipulation for audio.
-            </p>
-
-            <h3>🔹 Step 1: Input Selection</h3>
-            <p>
-                The user selects a <b>carrier file</b> (image, audio, video, or text) and enters the <b>secret data</b> to be hidden.
-            </p>
-
-            <h3>🔹 Step 2: Data Preprocessing</h3>
-            <p>
-                <b>Encryption (Optional):</b> The secret data can be encrypted (e.g., AES) for extra security.
-            </p>
-            <p>
-                <b>Data Conversion:</b> Convert the secret message into binary format for embedding.
-            </p>
-
-            <h3>🔹 Step 3: Data Embedding (Steganography)</h3>
+            <h3>🛠️ Technical Process</h3>
+            <p>Steganography works by embedding the secret message into the carrier file (e.g., image, audio, video) using techniques like LSB for images or frequency domain manipulation for audio.</p>
+            <h3>🔹 Steps</h3>
             <ul>
-                <li><b>Images (LSB Steganography):</b> Modify the <b>Least Significant Bit (LSB)</b> of pixel values.</li>
-                <li><b>Audio (LSB or Frequency Modulation):</b> Hide data in digital wave samples.</li>
-                <li><b>Video:</b> Embed data in specific frames using LSB or motion-based techniques.</li>
-                <li><b>Text:</b> Hide information using <b>whitespace or Unicode encoding</b>.</li>
+                <li><b>Input Selection:</b> Choose a carrier file and secret data.</li>
+                <li><b>Data Preprocessing:</b> Optionally encrypt the data and convert it to binary.</li>
+                <li><b>Data Embedding:</b> Hide the message using LSB, Unicode, or metadata.</li>
+                <li><b>Data Extraction:</b> Retrieve the message with the correct method.</li>
+                <li><b>Verification:</b> Use checksums to ensure integrity.</li>
             </ul>
-
-            <h3>🔹 Step 4: Data Extraction</h3>
-            <p>
-                The hidden message is retrieved using a <b>decryption key</b> and extraction algorithm.
-            </p>
-
-            <h3>🔹 Step 5: Security & Verification</h3>
-            <p>
-                The extracted message is verified using cryptographic <b>checksums or hashes</b> to ensure integrity.
-            </p>
         </div>
-
         <div class="grid-card motion-fade glow-effect">
-            <h3 style="margin-bottom: 20px;">🔒 Best Practices for SteganoVault</h3>
+            <h3>🔒 Best Practices</h3>
             <ul>
-                <li>🔑 <b>Use Strong Passwords:</b> Protect hidden data with strong encryption and complex passwords.</li>
-                <li>🖼️ <b>Select High-Quality Carrier Files:</b> Use images, audio, or videos with high resolution and complexity to avoid detection.</li>
-                <li>🔐 <b>Combine with Encryption:</b> Encrypt the hidden message before embedding it for extra security.</li>
-                <li>⚡ <b>Avoid Common Patterns:</b> Do not use repetitive or predictable hiding techniques that can be detected by steganalysis.</li>
-                <li>🛠️ <b>Test and Verify:</b> Ensure that the embedded message remains hidden and intact after transmission or compression.</li>
+                <li>Use strong passwords for added security.</li>
+                <li>Choose high-quality carrier files.</li>
+                <li>Avoid predictable patterns.</li>
+                <li>Test the file after encoding.</li>
             </ul>
-
-            <h3 style="margin-top: 20px;">⚠️ Limitations of SteganoVault</h3>
+            <h3>⚠️ Limitations</h3>
             <ul>
-                <li>📏 <b>Limited Data Capacity:</b> The amount of data that can be hidden depends on the size and complexity of the carrier file.</li>
-                <li>🕵️ <b>Vulnerability to Steganalysis:</b> Advanced detection techniques can identify hidden messages in manipulated files.</li>
-                <li>📂 <b>Carrier File Sensitivity:</b> Compression, resizing, or format conversion can damage the hidden data, leading to loss.</li>
-                <li>🚀 <b>Processing Time:</b> Large data embedding may slow down processing speed and impact efficiency.</li>
+                <li>Limited data capacity based on file size.</li>
+                <li>Vulnerable to steganalysis.</li>
+                <li>Sensitive to compression or resizing.</li>
+                <li>Processing time increases with large data.</li>
             </ul>
         </div>
     </div>
 
     <!-- Fun Activities Section -->
-    <h3 class="text-3xl font-semibold mb-6 motion-fade glow-effect" id="fun-activities">Fun Activities</h3>
+    <div class="flex items-center justify-center gap-2">
+        <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center" id="fun-activities">Fun Activities</h3>
+        <button id="funActivitiesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg">ℹ️</button>
+    </div>
     <div class="grid-section">
         <div class="grid-card motion-fade glow-effect game-container">
             <h3>🎯 Spy Target Practice</h3>
@@ -677,41 +742,39 @@
     </div>
 
     <!-- Contributors Section -->
-    <h3 class="text-3xl font-semibold mb-6 motion-fade glow-effect" id="contributors">Contributors</h3>
+    <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center" id="contributors">Contributors</h3>
     <div class="contributors motion-fade show">
         <div class="contributor">
-            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/Hritik-removebg-preview.png?raw=true" alt="Hritik Ranjan" class="mx-auto rounded-full w-32 h-32 shadow-lg">
-            <p class="font-semibold mt-2 text-xl">Hritik Ranjan</p>
+            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/Hritik-removebg-preview.png?raw=true" alt="Hritik Ranjan" class="mx-auto rounded-full shadow-lg">
+            <p class="font-semibold mt-2 text-lg sm:text-xl">Hritik Ranjan</p>
             <div class="flex flex-col items-center space-y-2 mt-2">
-                <a href="https://github.com/hritikranjan1" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors">GitHub</a>
-                <a href="https://www.linkedin.com/in/hritikranjan1/" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors">LinkedIn</a>
-                <a href="https://t.me/codewithluv143" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors">Telegram</a>
-            </div>
-        </div>
-        <div class="contributor flex flex-col items-center space-y-2">
-            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/ruhul.jpeg?raw=true" alt="Ruhul Islam" class="w-32 h-32 rounded-full shadow-lg">
-            <p class="font-semibold text-xl">Ruhul Islam</p>
-            <div class="flex flex-col items-center space-y-2">
-                <a href="https://github.com/iruhul8750" class="text-blue-500 hover:text-blue-600 transition-colors">GitHub</a>
-                <a href="https://www.linkedin.com/in/ruhulislam2022/" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors">LinkedIn</a>
+                <a href="https://github.com/hritikranjan1" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">GitHub</a>
+                <a href="https://www.linkedin.com/in/hritikranjan1/" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">LinkedIn</a>
+                <a href="https://t.me/codewithluv143" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">Telegram</a>
             </div>
         </div>
         <div class="contributor">
-            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/kamal.png?raw=true" alt="Kamaljit Chauhan">
-            <p class="font-semibold text-xl">Kamaljit Chauhan</p>
-            <a href="https://github.com/Kamaljit8708885373" class="text-blue-500 hover:text-blue-600 transition-colors">GitHub</a>
+            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/ruhul.jpeg?raw=true" alt="Ruhul Islam" class="mx-auto rounded-full shadow-lg">
+            <p class="font-semibold mt-2 text-lg sm:text-xl">Ruhul Islam</p>
+            <div class="flex flex-col items-center space-y-2 mt-2">
+                <a href="https://github.com/iruhul8750" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">GitHub</a>
+                <a href="https://www.linkedin.com/in/ruhulislam2022/" target="_blank" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">LinkedIn</a>
+            </div>
+        </div>
+        <div class="contributor">
+            <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/kamal.png?raw=true" alt="Kamaljit Chauhan" class="mx-auto rounded-full shadow-lg">
+            <p class="font-semibold mt-2 text-lg sm:text-xl">Kamaljit Chauhan</p>
+            <a href="https://github.com/Kamaljit8708885373" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">GitHub</a>
         </div>
     </div>
 
     <!-- Footer Section -->
     <div class="footer glow-effect">
         <div class="important-note">
-            <h3 class="text-xl font-semibold">Important Note</h3>
-            <p class="text-base">
-                This tool is intended for educational and entertainment purposes only. It is not a secure encryption method and should not be used for sensitive or confidential information. For secure communication, consider using proper encryption tools.
-            </p>
+            <h3 class="text-lg sm:text-xl font-semibold">Important Note</h3>
+            <p class="text-sm sm:text-base">This tool is intended for educational and entertainment purposes only. It is not a secure encryption method and should not be used for sensitive or confidential information. For secure communication, consider using proper encryption tools.</p>
         </div>
-        <p class="text-lg mt-4">© 2025 SteganoVault. Some rights reserved. Built with ❤️</p>
+        <p class="text-sm sm:text-lg mt-4">© 2025 SteganoVault. Some rights reserved. Built with ❤️</p>
     </div>
 
     <script>
@@ -767,12 +830,14 @@
             const badges = ['Rookie Spy', 'Codebreaker', 'Shadow Agent'];
             const stealthScoreDisplay = document.getElementById('stealth-score');
             const badgesContainer = document.getElementById('badges');
+            const badgesInfoBtn = document.getElementById('badgesInfoBtn');
 
             function updateStealthScore(points) {
                 stealthScore += points;
                 stealthScoreDisplay.textContent = stealthScore;
                 if (stealthScore >= 10 && !badgesContainer.innerHTML.includes('Rookie Spy')) {
                     badgesContainer.innerHTML += '<span class="badge">Rookie Spy</span>';
+                    badgesInfoBtn.classList.remove('hidden');
                 }
                 if (stealthScore >= 50 && !badgesContainer.innerHTML.includes('Codebreaker')) {
                     badgesContainer.innerHTML += '<span class="badge">Codebreaker</span>';
@@ -782,13 +847,14 @@
                 }
             }
 
-            // Reset Inputs Function (Does not affect output)
+            // Reset Inputs Function
             function resetInputs() {
                 document.getElementById("messageInput").value = '';
                 document.getElementById("passwordInput").value = '';
                 fileInput.value = '';
                 fileNameDisplay.textContent = '';
                 document.getElementById("share-challenge").classList.add('hidden');
+                document.getElementById("shareChallengeInfoBtn").classList.add('hidden');
             }
 
             // Encode Function
@@ -799,6 +865,7 @@
                 const password = document.getElementById("passwordInput").value;
                 const output = document.getElementById("output");
                 const shareButton = document.getElementById("share-challenge");
+                const shareInfoBtn = document.getElementById("shareChallengeInfoBtn");
 
                 if (!file || !message) {
                     output.innerHTML = "<p class='text-red-500'>⚠️ Missing file or message, Agent!</p>";
@@ -837,6 +904,7 @@
                     resetInputs();
                     updateStealthScore(10);
                     shareButton.classList.remove('hidden');
+                    shareInfoBtn.classList.remove('hidden');
                     shareButton.onclick = () => shareChallenge(url);
                 } catch (error) {
                     console.error("Encoding error:", error);
@@ -905,23 +973,41 @@
                 }
             }
 
-            // Popup Modal Functionality
-            const modal = document.getElementById('infoModal');
-            const infoBtn = document.getElementById('infoBtn');
-            const closeBtn = document.querySelector('.close');
+            // Modal Functionality
+            const modals = {
+                info: document.getElementById('infoModal'),
+                stealthScore: document.getElementById('stealthScoreModal'),
+                badges: document.getElementById('badgesModal'),
+                shareChallenge: document.getElementById('shareChallengeModal'),
+                funActivities: document.getElementById('funActivitiesModal')
+            };
 
-            infoBtn.addEventListener('click', () => {
-                modal.style.display = 'block';
+            const buttons = {
+                info: document.getElementById('infoBtn'),
+                stealthScore: document.getElementById('stealthScoreInfoBtn'),
+                badges: document.getElementById('badgesInfoBtn'),
+                shareChallenge: document.getElementById('shareChallengeInfoBtn'),
+                funActivities: document.getElementById('funActivitiesInfoBtn')
+            };
+
+            Object.keys(buttons).forEach(key => {
+                buttons[key].addEventListener('click', () => {
+                    modals[key].style.display = 'block';
+                });
             });
 
-            closeBtn.addEventListener('click', () => {
-                modal.style.display = 'none';
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', () => {
+                    Object.values(modals).forEach(modal => modal.style.display = 'none');
+                });
             });
 
             window.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                }
+                Object.values(modals).forEach(modal => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
             });
 
             // Fun Activity: Spy Target Practice
@@ -939,7 +1025,7 @@
                     startGameBtn.textContent = 'Game On!';
                     startGameBtn.disabled = true;
 
-                    const gameDuration = 10000; // 10 seconds
+                    const gameDuration = 10000;
                     moveTarget();
 
                     gameTarget.addEventListener('click', () => {
@@ -965,7 +1051,7 @@
             function moveTarget() {
                 const container = document.querySelector('.game-container');
                 const maxX = container.clientWidth - gameTarget.clientWidth;
-                const maxY = container.clientHeight - gameTarget.clientHeight - 60; // Adjust for padding/buttons
+                const maxY = container.clientHeight - gameTarget.clientHeight - 60;
                 const newX = Math.floor(Math.random() * maxX);
                 const newY = Math.floor(Math.random() * maxY);
                 gameTarget.style.left = `${newX}px`;
