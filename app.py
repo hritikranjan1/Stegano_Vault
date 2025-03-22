@@ -25,9 +25,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Maximum file size (10MB)
-#MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB in bytes
-
 # Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
 GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'  # Updated with your folder ID
@@ -357,9 +354,7 @@ def encode():
     if not uploaded_file or not message:
         return jsonify({"error": "File and message are required!"}), 400
 
-    uploaded_file.seek(0, os.SEEK_END)
-    #if uploaded_file.tell() > MAX_FILE_SIZE:
-        #return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    # File size check removed
     uploaded_file.seek(0)
 
     temp_dir = tempfile.mkdtemp()
@@ -416,9 +411,7 @@ def decode():
     if not uploaded_file:
         return jsonify({"error": "File is required!"}), 400
 
-    uploaded_file.seek(0, os.SEEK_END)
-    #if uploaded_file.tell() > MAX_FILE_SIZE:
-        #return jsonify({"error": "File size exceeds 10MB limit!"}), 400
+    # File size check removed
     uploaded_file.seek(0)
 
     temp_dir = tempfile.mkdtemp()
