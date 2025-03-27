@@ -820,7 +820,7 @@
             <ul>
                 <li>Use strong passwords for added security.</li>
                 <li>Choose high-quality carrier files.</li>
-                <li>Avoid predictable patterns.</li>
+                <li>Avoid predictable Bens.</li>
                 <li>Test the file after encoding.</li>
             </ul>
             <h3>⚠️ Limitations</h3>
@@ -1192,6 +1192,38 @@
                     decodeBtnProcessing.classList.add('hidden');
                     loading.classList.add('hidden');
                 }
+            }
+
+            // Updated Share Challenge function
+            function shareChallenge(shareUrl) {
+                // Normalize the shareUrl to use ?usp=drivesdk
+                const normalizedShareUrl = shareUrl.replace('usp=sharing', 'usp=drivesdk');
+                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${normalizedShareUrl} and decode it at: https://stegano-vault.onrender.com/`;
+                
+                if (navigator.share && navigator.canShare) {
+                    navigator.share({
+                        title: 'SteganoVault Challenge',
+                        text: shareText,
+                        url: normalizedShareUrl
+                    }).then(() => {
+                        console.log('Challenge shared successfully!');
+                    }).catch((error) => {
+                        console.error('Error sharing:', error);
+                        fallbackShare(shareText);
+                    });
+                } else {
+                    fallbackShare(shareText);
+                }
+            }
+
+            function fallbackShare(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Challenge text copied to clipboard! Paste it to share with your friends.');
             }
 
             // Testimonial carousel

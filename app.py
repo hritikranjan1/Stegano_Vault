@@ -20,6 +20,10 @@ from googleapiclient.http import MediaFileUpload
 import json
 from werkzeug.utils import secure_filename
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -69,7 +73,7 @@ def get_drive_service():
         return None
 
 def upload_to_drive(file_path, file_name):
-    """Upload a file to Google Drive and return its public URL."""
+    """Upload a file to Google Drive and return its public URL with ?usp=drivesdk."""
     drive_service = get_drive_service()
     if not drive_service:
         logger.error("Drive service not initialized")
@@ -90,7 +94,9 @@ def upload_to_drive(file_path, file_name):
             fileId=file['id'],
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
-        return file['webViewLink']
+        # Modify the webViewLink to use ?usp=drivesdk instead of ?usp=sharing
+        share_url = file['webViewLink'].replace('usp=sharing', 'usp=drivesdk')
+        return share_url
     except Exception as e:
         logger.error(f"Failed to upload to Google Drive: {str(e)}")
         return None
@@ -449,12 +455,10 @@ def encode():
                 "filename": final_filename,
                 "checksum": checksum,
                 "processing_time": processing_time,
-                "preview_url": url_for('static', filename=os.path.basename(preview_file)) if preview_file else None
+                "preview_url": url_for('static', filename=os.path.basename(preview_file)) if preview_file else None,
+                "share_url": share_url if share_url else "Upload to Google Drive failed"
             }
-            
-            if share_url:
-                response_data["share_url"] = share_url
-            
+
             response = send_file(output_file, as_attachment=True, download_name=final_filename)
             response.headers["X-Response-Data"] = json.dumps(response_data)
             return response
@@ -546,6 +550,8 @@ if __name__ == "__main__":
     # Create static directory if it doesn't exist
     if not os.path.exists('static'):
         os.makedirs('static')
+    
+    logger.info("Starting SteganoVault server...")
     
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
