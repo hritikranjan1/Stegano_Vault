@@ -458,6 +458,130 @@
             background-color: var(--hover-bg);
         }
 
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--glow-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .preview-container {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .preview-container img {
+            max-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px var(--glow-color);
+            transition: transform 0.3s ease;
+        }
+
+        .preview-container img:hover {
+            transform: scale(1.05);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .tutorial-step {
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .tutorial-step.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .fun-fact, .testimonial {
+            background-color: var(--message-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+
+        .processing-animation {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .processing-animation::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: processing 1.5s infinite;
+        }
+        
+        @keyframes processing {
+            100% {
+                left: 100%;
+            }
+        }
+        
+        .testimonial-carousel {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+        
+        .testimonial-item {
+            min-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .rating-stars {
+            color: gold;
+            font-size: 1.2rem;
+        }
+        
+        .decoded-message-label {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
         @media (max-width: 480px) {
             h1 { font-size: 2rem; }
             h2 { font-size: 1.5rem; }
@@ -534,17 +658,34 @@
     <!-- Stealth Score -->
     <div class="stealth-score-container">
         <div class="stealth-score">Stealth Score: <span id="stealth-score">0</span></div>
-        <button id="stealthScoreInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg">ℹ️</button>
+        <button id="stealthScoreInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg tooltip">
+            ℹ️
+            <span class="tooltiptext">Track your spy skills with points!</span>
+        </button>
     </div>
 
     <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 motion-fade glow-effect text-center" id="steganovault">🔐 SteganoVault</h1>
     <p class="text-center mb-6 text-sm sm:text-base md:text-lg px-2">Steganography Tool - Hide and Extract Secret Messages in Files (images, text files, PDFs, DOCX files, audio, and video)</p>
 
+    <!-- Tutorial Section -->
+    <div class="w-full max-w-2xl mb-6">
+        <h3 class="text-xl font-semibold mb-2 text-center">Quick Tutorial</h3>
+        <div id="tutorial">
+            <div class="tutorial-step">1. Select a file to encode or decode.</div>
+            <div class="tutorial-step">2. Enter your secret message and optional password.</div>
+            <div class="tutorial-step">3. Click Encode to hide your message or Decode to reveal it.</div>
+        </div>
+        <button id="nextTutorial" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded mt-2 motion-button glow-effect mx-auto block">Next</button>
+    </div>
+
     <!-- Main App Box -->
     <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-4 sm:p-6 w-full max-w-lg sm:max-w-2xl motion-fade mb-8 glow-effect" id="encode-decode">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl sm:text-3xl md:text-4xl font-semibold flex-1 text-center">Encode / Decode</h2>
-            <button id="infoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg sm:text-xl">ℹ️</button>
+            <button id="infoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg sm:text-xl tooltip">
+                ℹ️
+                <span class="tooltiptext">Learn how to share your encoded files!</span>
+            </button>
         </div>
 
         <!-- Drag & Drop File Upload -->
@@ -557,100 +698,85 @@
             <div id="fileName" class="file-name"></div>
         </div>
 
+        <!-- Preview Section -->
+        <div class="flex flex-col sm:flex-row gap-4 mt-4">
+            <div id="previewBefore" class="preview-container flex-1 hidden">
+                <p class="text-center font-semibold mb-2">Before:</p>
+                <img class="mx-auto max-h-40">
+            </div>
+            <div id="previewAfter" class="preview-container flex-1 hidden">
+                <p class="text-center font-semibold mb-2">After:</p>
+                <img class="mx-auto max-h-40">
+            </div>
+        </div>
+
         <label class="block mt-6 text-sm sm:text-lg md:text-xl">Enter Message:</label>
         <input type="text" id="messageInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Hidden message">
 
         <label class="block mt-6 text-sm sm:text-lg md:text-xl">Optional Password:</label>
         <input type="password" id="passwordInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter password (optional)">
 
+        <label class="block mt-6 text-sm sm:text-lg md:text-xl">Custom Watermark (Images Only):</label>
+        <input type="text" id="watermarkInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter watermark text (optional)">
+
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
-            <button id="encodeBtn" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect">🔒 Encode</button>
-            <button id="decodeBtn" class="bg-red-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-red-600 text-sm sm:text-lg md:text-xl glow-effect">🔓 Decode</button>
+            <button id="encodeBtn" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect processing-animation hidden">🔒 Encoding...</button>
+            <button id="encodeBtnReady" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect">🔒 Encode</button>
+            
+            <button id="decodeBtn" class="bg-red-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-red-600 text-sm sm:text-lg md:text-xl glow-effect processing-animation hidden">🔓 Decoding...</button>
+            <button id="decodeBtnReady" class="bg-red-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-red-600 text-sm sm:text-lg md:text-xl glow-effect">🔓 Decode</button>
         </div>
 
         <div id="output" class="mt-6 text-center text-sm sm:text-lg md:text-xl"></div>
-        <div id="decodedOutput" class="decoded-output-container hidden"></div>
+        <div id="loading" class="spinner hidden"></div>
+        
+        <!-- Decoded Message Container -->
+        <div id="decodedOutputContainer" class="mt-4 hidden">
+            <div class="decoded-message-label">Decoded Message:</div>
+            <div id="decodedOutput" class="decoded-output-container"></div>
+        </div>
+        
         <div class="badges-container" id="badges"></div>
         <button id="share-challenge" class="share-challenge hidden">Share Challenge</button>
         <div class="flex justify-center gap-2 mt-2">
-            <button id="badgesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden">ℹ️</button>
-            <button id="shareChallengeInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden">ℹ️</button>
+            <button id="badgesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden tooltip">
+                ℹ️
+                <span class="tooltiptext">Earn badges as you gain points!</span>
+            </button>
+            <button id="shareChallengeInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg hidden tooltip">
+                ℹ️
+                <span class="tooltiptext">Challenge friends to decode your secret!</span>
+            </button>
         </div>
     </div>
 
-    <!-- Popup Modals -->
-    <div id="infoModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3 class="text-lg sm:text-xl font-semibold mb-4">How to Share Your Encoded File</h3>
-            <p class="text-sm sm:text-base">Share the downloaded encoded file with your friend via a method that preserves the file as-is, such as:</p>
-            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
-                <li><b>Google Drive:</b> Upload the file and share the link.</li>
-                <li><b>Email:</b> Attach the file to an email.</li>
-            </ul>
-            <p class="text-sm sm:text-base"><b>Important:</b> Avoid compression-based apps like WhatsApp, as they may alter the file and break the hidden message.</p>
-            <p class="text-sm sm:text-base mt-2">If you used a password, share it with your friend separately (e.g., via a secure chat).</p>
+    <!-- Testimonials Section -->
+    <div class="w-full max-w-2xl mb-6">
+        <h3 class="text-xl font-semibold mb-2 text-center">What Agents Say</h3>
+        <div class="testimonial-carousel-container relative overflow-hidden h-40">
+            <div class="testimonial-carousel">
+                {% for testimonial in testimonials %}
+                <div class="testimonial-item p-4">
+                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                        <div class="rating-stars mb-2">
+                            {% for _ in range(testimonial.rating) %}★{% endfor %}
+                        </div>
+                        <p class="italic">"{{ testimonial.text }}"</p>
+                        <p class="text-right font-semibold mt-2">- {{ testimonial.name }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <div id="stealthScoreModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3 class="text-lg sm:text-xl font-semibold mb-4">Stealth Score</h3>
-            <p class="text-sm sm:text-base"><b>What is it?</b> The Stealth Score is a fun way to track your progress as a secret agent using SteganoVault. It increases as you encode, decode, or play games.</p>
-            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
-            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
-                <li>Encoding a file: +10 points</li>
-                <li>Decoding a file: +15 points</li>
-                <li>Clicking the target in Spy Target Practice: +5 points per click</li>
-            </ul>
-            <p class="text-sm sm:text-base"><b>Details:</b> Your score reflects your skill level. Higher scores unlock badges like Rookie Spy, Codebreaker, and Shadow Agent!</p>
-        </div>
-    </div>
-
-    <div id="badgesModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3 class="text-lg sm:text-xl font-semibold mb-4">Rookie Spy & Codebreaker Badges</h3>
-            <p class="text-sm sm:text-base"><b>What are they?</b> Badges are achievements you earn based on your Stealth Score, showing off your steganography prowess.</p>
-            <p class="text-sm sm:text-base mt-2"><b>How they work:</b></p>
-            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
-                <li><b>Rookie Spy:</b> Earned at 10 points. You’re just starting your spy journey!</li>
-                <li><b>Codebreaker:</b> Earned at 50 points. You’ve cracked some tough secrets!</li>
-                <li><b>Shadow Agent:</b> Earned at 100 points. You’re a master of stealth!</li>
-            </ul>
-            <p class="text-sm sm:text-base"><b>Details:</b> Badges appear below the encode/decode section as you reach milestones. Collect them all to become a legendary agent!</p>
-        </div>
-    </div>
-
-    <div id="shareChallengeModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3 class="text-lg sm:text-xl font-semibold mb-4">Share Challenge</h3>
-            <p class="text-sm sm:text-base"><b>What is it?</b> Share Challenge lets you send your encoded file to friends, challenging them to decode your secret message.</p>
-            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
-            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
-                <li>After encoding, click "Share Challenge" to generate a shareable link or text.</li>
-                <li>On supported devices, it uses the native share feature; otherwise, it provides a text prompt to copy.</li>
-                <li>Your friend downloads the file and uses SteganoVault to decode it.</li>
-            </ul>
-            <p class="text-sm sm:text-base"><b>Details:</b> Make sure to share the password separately if you used one. Avoid platforms that compress files (e.g., WhatsApp) to keep the message intact.</p>
-        </div>
-    </div>
-
-    <div id="funActivitiesModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3 class="text-lg sm:text-xl font-semibold mb-4">Fun Activities</h3>
-            <p class="text-sm sm:text-base"><b>What is it?</b> Fun Activities include interactive games to enhance your SteganoVault experience, like Spy Target Practice.</p>
-            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
-            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
-                <li><b>Spy Target Practice:</b> Click the moving target as many times as possible in 10 seconds.</li>
-                <li>Each click earns 5 Stealth Score points.</li>
-                <li>The game resets after 10 seconds, showing your final score.</li>
-            </ul>
-            <p class="text-sm sm:text-base"><b>Details:</b> It’s a playful way to test your reflexes and boost your score. More activities may be added in the future!</p>
-        </div>
+    <!-- Privacy Assurance -->
+    <div class="w-full max-w-2xl mb-6 text-center">
+        <p class="text-sm sm:text-base bg-[var(--card-bg)] p-4 rounded glow-effect">
+            🔒 <strong>Privacy Assurance:</strong> 
+            <span id="privacyText">We don't store your files or messages—everything is processed in real-time and deleted after use.</span>
+            <button id="learnMorePrivacy" class="text-blue-400 hover:text-blue-300 ml-1">Learn more</button>
+        </p>
     </div>
 
     <!-- How It Works Section -->
@@ -660,7 +786,7 @@
             <h3>What is Steganography?</h3>
             <p>Steganography is the art and science of hiding secret information inside a non-suspicious file, message, or medium. It ensures that the hidden data remains undetectable to anyone who is not aware of its presence.</p>
             <h3>🔹 How It Works?</h3>
-            <p>Unlike encryption, which scrambles a message to make it unreadable, steganography hides the message **within another file** (such as an image, audio, video, or text file) so that no one suspects its existence.</p>
+            <p>Unlike encryption, which scrambles a message to make it unreadable, steganography hides the message <strong>within another file</strong> (such as an image, audio, video, or text file) so that no one suspects its existence.</p>
             <h3>🔹 Common Techniques</h3>
             <ul>
                 <li><b>LSB (Least Significant Bit) Steganography:</b> Hides data in the least significant bits of an image or audio file.</li>
@@ -710,7 +836,10 @@
     <!-- Fun Activities Section -->
     <div class="flex items-center justify-center gap-2">
         <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center" id="fun-activities">Fun Activities</h3>
-        <button id="funActivitiesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg">ℹ️</button>
+        <button id="funActivitiesInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg tooltip">
+            ℹ️
+            <span class="tooltiptext">Play games to boost your score!</span>
+        </button>
     </div>
     <div class="grid-section">
         <div class="grid-card motion-fade glow-effect game-container">
@@ -758,6 +887,81 @@
         <p class="text-sm sm:text-lg mt-4">© 2025 SteganoVault. Some rights reserved. Built with ❤️</p>
     </div>
 
+    <!-- Popup Modals -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">How to Share Your Encoded File</h3>
+            <p class="text-sm sm:text-base">Share the downloaded encoded file with your friend via a method that preserves the file as-is, such as:</p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li><b>Google Drive:</b> Upload the file and share the link.</li>
+                <li><b>Email:</b> Attach the file to an email.</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Important:</b> Avoid compression-based apps like WhatsApp, as they may alter the file and break the hidden message.</p>
+            <p class="text-sm sm:text-base mt-2">If you used a password, share it with your friend separately (e.g., via a secure chat).</p>
+        </div>
+    </div>
+
+    <div id="stealthScoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Stealth Score</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> The Stealth Score is a fun way to track your progress as a secret agent using SteganoVault. It increases as you encode, decode, or play games.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li>Encoding a file: +10 points</li>
+                <li>Decoding a file: +15 points</li>
+                <li>Clicking the target in Spy Target Practice: +5 points per click</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Your score reflects your skill level. Higher scores unlock badges like Rookie Spy, Codebreaker, and Shadow Agent!</p>
+        </div>
+    </div>
+
+    <div id="badgesModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Rookie Spy & Codebreaker Badges</h3>
+            <p class="text-sm sm:text-base"><b>What are they?</b> Badges are achievements you earn based on your Stealth Score, showing off your steganography prowess.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How they work:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li><b>Rookie Spy:</b> Earned at 10 points. You're just starting your spy journey!</li>
+                <li><b>Codebreaker:</b> Earned at 50 points. You've cracked some tough secrets!</li>
+                <li><b>Shadow Agent:</b> Earned at 100 points. You're a master of stealth!</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Badges appear below the encode/decode section as you reach milestones. Collect them all to become a legendary agent!</p>
+        </div>
+    </div>
+
+    <div id="shareChallengeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Share Challenge</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> Share Challenge lets you send your encoded file to friends, challenging them to decode your secret message.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li>After encoding, click "Share Challenge" to generate a shareable link or text.</li>
+                <li>On supported devices, it uses the native share feature; otherwise, it provides a text prompt to copy.</li>
+                <li>Your friend downloads the file and uses SteganoVault to decode it.</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> Make sure to share the password separately if you used one. Avoid platforms that compress files (e.g., WhatsApp) to keep the message intact.</p>
+        </div>
+    </div>
+
+    <div id="funActivitiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3 class="text-lg sm:text-xl font-semibold mb-4">Fun Activities</h3>
+            <p class="text-sm sm:text-base"><b>What is it?</b> Fun Activities include interactive games to enhance your SteganoVault experience, like Spy Target Practice.</p>
+            <p class="text-sm sm:text-base mt-2"><b>How it works:</b></p>
+            <ul class="list-disc ml-5 mt-2 mb-4 text-sm sm:text-base">
+                <li><b>Spy Target Practice:</b> Click the moving target as many times as possible in 10 seconds.</li>
+                <li>Each click earns 5 Stealth Score points.</li>
+                <li>The game resets after 10 seconds, showing your final score.</li>
+            </ul>
+            <p class="text-sm sm:text-base"><b>Details:</b> It's a playful way to test your reflexes and boost your score. More activities may be added in the future!</p>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Theme Switcher
@@ -770,6 +974,10 @@
             const dropArea = document.getElementById("drop-area");
             const fileInput = document.getElementById("fileInput");
             const fileNameDisplay = document.getElementById("fileName");
+            const previewBefore = document.getElementById("previewBefore");
+            const previewBeforeImg = previewBefore.querySelector('img');
+            const previewAfter = document.getElementById("previewAfter");
+            const previewAfterImg = previewAfter.querySelector('img');
 
             ['dragenter', 'dragover'].forEach(event => {
                 dropArea.addEventListener(event, (e) => {
@@ -803,7 +1011,20 @@
                 dt.items.add(file);
                 fileInput.files = dt.files;
                 fileNameDisplay.textContent = file.name;
-                console.log("File selected:", file.name);
+                
+                // Show preview for images
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        previewBeforeImg.src = reader.result;
+                        previewBefore.classList.remove('hidden');
+                        previewAfter.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewBefore.classList.add('hidden');
+                    previewAfter.classList.add('hidden');
+                }
             }
 
             // Stealth Score & Badges
@@ -828,97 +1049,109 @@
                 }
             }
 
-            // Reset Inputs Function
-            function resetInputs() {
-                document.getElementById("messageInput").value = '';
-                document.getElementById("passwordInput").value = '';
-                fileInput.value = '';
-                fileNameDisplay.textContent = '';
-                document.getElementById("share-challenge").classList.add('hidden');
-                document.getElementById("shareChallengeInfoBtn").classList.add('hidden');
-            }
-
-            // Encode Function
-            const encodeBtn = document.getElementById('encodeBtn');
-            encodeBtn.addEventListener('click', async () => {
+            // Enhanced encode function
+            async function encodeFile() {
                 const file = fileInput.files[0];
                 const message = document.getElementById("messageInput").value;
                 const password = document.getElementById("passwordInput").value;
+                const watermark = document.getElementById("watermarkInput").value;
                 const output = document.getElementById("output");
                 const shareButton = document.getElementById("share-challenge");
                 const shareInfoBtn = document.getElementById("shareChallengeInfoBtn");
+                const loading = document.getElementById("loading");
+                const encodeBtnReady = document.getElementById("encodeBtnReady");
+                const encodeBtnProcessing = document.getElementById("encodeBtn");
+                const decodedOutputContainer = document.getElementById("decodedOutputContainer");
 
                 if (!file || !message) {
                     output.innerHTML = "<p class='text-red-500'>⚠️ Missing file or message, Agent!</p>";
                     return;
                 }
 
-                output.innerHTML = "<p class='text-yellow-500'>⏳ Hiding your secrets...</p>";
-                encodeBtn.disabled = true; // Disable button during request
-                console.log("Encoding started with file:", file.name);
-
+                output.innerHTML = "";
+                decodedOutputContainer.classList.add('hidden');
+                encodeBtnReady.classList.add('hidden');
+                encodeBtnProcessing.classList.remove('hidden');
+                loading.classList.remove('hidden');
+                
                 const formData = new FormData();
                 formData.append("file", file);
                 formData.append("message", message);
                 formData.append("password", password);
+                formData.append("watermark", watermark);
 
                 try {
                     const response = await fetch("/encode", {
                         method: "POST",
-                        body: formData,
-                        signal: AbortSignal.timeout(30000) // 30s timeout
+                        body: formData
                     });
-                    console.log("Encode response status:", response.status);
-
+                    
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.error || "Encoding failed");
                     }
 
-                    const blob = await response.blob();
-                    const shareUrl = response.headers.get("X-Share-URL");
-                    if (!shareUrl) {
-                        throw new Error("Share URL not provided by server");
+                    const responseData = JSON.parse(response.headers.get("X-Response-Data"));
+                    
+                    // Show before/after previews
+                    if (file.type.startsWith('image/')) {
+                        if (responseData.preview_url) {
+                            previewAfterImg.src = responseData.preview_url;
+                            previewAfter.classList.remove('hidden');
+                        }
                     }
-
+                    
+                    // Download the file
+                    const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = "encoded_" + file.name;
+                    a.download = responseData.filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    output.innerHTML = "<p class='text-green-500'>✅ Mission complete—secret secured!</p>";
-                    resetInputs();
+                    
+                    output.innerHTML = `
+                        <p class='text-green-500'>✅ Mission complete—secret secured!</p>
+                        <p class='text-sm mt-2'>Processing time: ${responseData.processing_time}s</p>
+                    `;
+                    
                     updateStealthScore(10);
                     shareButton.classList.remove('hidden');
                     shareInfoBtn.classList.remove('hidden');
-                    shareButton.onclick = () => shareChallenge(shareUrl);
+                    shareButton.onclick = () => shareChallenge(responseData.share_url);
                 } catch (error) {
                     console.error("Encoding error:", error);
                     output.innerHTML = `<p class='text-red-500'>❌ Signal lost—${error.message}</p>`;
                 } finally {
-                    encodeBtn.disabled = false; // Re-enable button
+                    encodeBtnReady.classList.remove('hidden');
+                    encodeBtnProcessing.classList.add('hidden');
+                    loading.classList.add('hidden');
                 }
-            });
+            }
 
-            // Decode Function
-            const decodeBtn = document.getElementById('decodeBtn');
-            decodeBtn.addEventListener('click', async () => {
+            // Enhanced decode function
+            async function decodeFile() {
                 const file = fileInput.files[0];
                 const password = document.getElementById("passwordInput").value;
                 const output = document.getElementById("output");
+                const decodedOutputContainer = document.getElementById("decodedOutputContainer");
                 const decodedOutput = document.getElementById("decodedOutput");
+                const loading = document.getElementById("loading");
+                const decodeBtnReady = document.getElementById("decodeBtnReady");
+                const decodeBtnProcessing = document.getElementById("decodeBtn");
 
                 if (!file) {
                     output.innerHTML = "<p class='text-red-500'>⚠️ No file detected, Agent!</p>";
                     return;
                 }
 
-                output.innerHTML = "<p class='text-yellow-500'>⏳ Cracking the code...</p>";
-                decodeBtn.disabled = true; // Disable button during request
-                console.log("Decoding started with file:", file.name);
-
+                output.innerHTML = "";
+                decodedOutputContainer.classList.add('hidden');
+                decodeBtnReady.classList.add('hidden');
+                decodeBtnProcessing.classList.remove('hidden');
+                loading.classList.remove('hidden');
+                
                 const formData = new FormData();
                 formData.append("file", file);
                 formData.append("password", password);
@@ -926,47 +1159,75 @@
                 try {
                     const response = await fetch("/decode", {
                         method: "POST",
-                        body: formData,
-                        signal: AbortSignal.timeout(30000) // 30s timeout
+                        body: formData
                     });
-                    console.log("Decode response status:", response.status);
+                    
                     const data = await response.json();
-                    console.log("Decoded data:", data);
-
+                    
                     if (!response.ok) {
                         throw new Error(data.error || "Decoding failed");
                     }
 
-                    if (data.message) {
-                        output.innerHTML = "<p class='text-blue-500'>🔓 Intel retrieved successfully!</p>";
-                        decodedOutput.textContent = data.message;
-                        decodedOutput.classList.remove("hidden");
-                        updateStealthScore(15);
-                    } else {
-                        throw new Error("No message returned from server");
+                    // Show before/after previews if available
+                    if (file.type.startsWith('image/')) {
+                        if (data.preview_url) {
+                            previewAfterImg.src = data.preview_url;
+                            previewAfter.classList.remove('hidden');
+                        }
                     }
-
-                    resetInputs();
+                    
+                    output.innerHTML = `
+                        <p class='text-blue-500'>🔓 Intel retrieved successfully!</p>
+                        <p class='text-sm mt-2'>Processing time: ${data.processing_time}s</p>
+                    `;
+                    
+                    decodedOutput.textContent = data.message;
+                    decodedOutputContainer.classList.remove('hidden');
+                    updateStealthScore(15);
                 } catch (error) {
                     console.error("Decoding error:", error);
                     output.innerHTML = `<p class='text-red-500'>❌ Decryption failed—${error.message}</p>`;
-                    decodedOutput.textContent = '';
-                    decodedOutput.classList.add("hidden");
                 } finally {
-                    decodeBtn.disabled = false; // Re-enable button
-                }
-            });
-
-            // Share Challenge (Updated with app URL)
-            function shareChallenge(shareUrl) {
-                const appUrl = "https://stegano-vault.onrender.com/";
-                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${shareUrl} and decode it at: ${appUrl}`;
-                if (navigator.share) {
-                    navigator.share({ title: 'SteganoVault Challenge', text: shareText });
-                } else {
-                    prompt('Copy this to share your challenge:', shareText);
+                    decodeBtnReady.classList.remove('hidden');
+                    decodeBtnProcessing.classList.add('hidden');
+                    loading.classList.add('hidden');
                 }
             }
+
+            // Testimonial carousel
+            let currentTestimonial = 0;
+            const testimonials = document.querySelectorAll('.testimonial-item');
+            const carousel = document.querySelector('.testimonial-carousel');
+            
+            function showTestimonial(index) {
+                carousel.style.transform = `translateX(-${index * 100}%)`;
+            }
+            
+            setInterval(() => {
+                currentTestimonial = (currentTestimonial + 1) % testimonials.length;
+                showTestimonial(currentTestimonial);
+            }, 5000);
+
+            // Privacy assurance
+            document.getElementById('learnMorePrivacy').addEventListener('click', async () => {
+                const response = await fetch('/privacy');
+                const data = await response.json();
+                document.getElementById('privacyText').textContent = data.privacy_policy;
+            });
+
+            // Event listeners
+            document.getElementById('encodeBtnReady').addEventListener('click', encodeFile);
+            document.getElementById('decodeBtnReady').addEventListener('click', decodeFile);
+            
+            // Tutorial Animation
+            const tutorialSteps = document.querySelectorAll('.tutorial-step');
+            let currentStep = 0;
+            tutorialSteps[currentStep].classList.add('active');
+            document.getElementById('nextTutorial').addEventListener('click', () => {
+                tutorialSteps[currentStep].classList.remove('active');
+                currentStep = (currentStep + 1) % tutorialSteps.length;
+                tutorialSteps[currentStep].classList.add('active');
+            });
 
             // Modal Functionality
             const modals = {
@@ -986,9 +1247,11 @@
             };
 
             Object.keys(buttons).forEach(key => {
-                buttons[key].addEventListener('click', () => {
-                    modals[key].style.display = 'block';
-                });
+                if (buttons[key]) {
+                    buttons[key].addEventListener('click', () => {
+                        modals[key].style.display = 'block';
+                    });
+                }
             });
 
             document.querySelectorAll('.close').forEach(closeBtn => {

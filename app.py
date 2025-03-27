@@ -18,6 +18,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import json
+from werkzeug.utils import secure_filename
+import time
 
 app = Flask(__name__)
 
@@ -27,7 +29,26 @@ logger = logging.getLogger(__name__)
 
 # Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
-GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'  # Updated with your folder ID
+GOOGLE_DRIVE_FOLDER_ID = '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-'
+
+# Testimonials data
+TESTIMONIALS = [
+    {
+        "name": "Agent X",
+        "text": "SteganoVault made hiding messages so fun and easy!",
+        "rating": 5
+    },
+    {
+        "name": "Codebreaker Y",
+        "text": "A must-have tool for any spy enthusiast!",
+        "rating": 5
+    },
+    {
+        "name": "Security Expert Z",
+        "text": "The perfect balance of security and usability.",
+        "rating": 4
+    }
+]
 
 def get_drive_service():
     """Initialize Google Drive API service with service account credentials."""
@@ -37,16 +58,12 @@ def get_drive_service():
         return None
     
     try:
-        # Parse JSON string safely
         credentials_info = json.loads(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(
             credentials_info,
             scopes=SCOPES
         )
         return build('drive', 'v3', credentials=credentials)
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"Failed to parse GOOGLE_CREDENTIALS: {str(e)}")
-        return None
     except Exception as e:
         logger.error(f"Error initializing Drive service: {str(e)}")
         return None
@@ -73,7 +90,6 @@ def upload_to_drive(file_path, file_name):
             fileId=file['id'],
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
-        logger.info(f"Uploaded file to Google Drive: {file['webViewLink']}")
         return file['webViewLink']
     except Exception as e:
         logger.error(f"Failed to upload to Google Drive: {str(e)}")
@@ -90,35 +106,61 @@ def convert_to_png(input_path):
         logger.error(f"Image Conversion Error: {e}")
         return None
 
+def generate_preview(input_path):
+    """Generate a preview image for display."""
+    try:
+        if input_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            img = Image.open(input_path)
+            preview_path = os.path.join('static', os.path.basename(input_path).replace(".", "_preview."))
+            img.thumbnail((300, 300))
+            img.save(preview_path, format="PNG", quality=85)
+            return preview_path
+        return None
+    except Exception as e:
+        logger.error(f"Preview Generation Error: {e}")
+        return None
+
 # IMAGE SECTION
-def encode_image(input_path, message, password):
+def encode_image(input_path, message, password, watermark=None):
     try:
         if not input_path.lower().endswith(".png"):
             input_path = convert_to_png(input_path)
         if not input_path:
-            return None
+            return None, None
         
         secret_message = f"{password}:{message}" if password else message
+        if watermark:
+            secret_message = f"{watermark}:{secret_message}"
+            
         encoded_img = lsb.hide(input_path, secret_message)
         output_path = input_path.replace(".png", "_encoded.png")
         encoded_img.save(output_path, format="PNG", quality=95)
-        return output_path
+        
+        preview_path = generate_preview(output_path)
+        return output_path, preview_path
     except Exception as e:
         logger.error(f"Image Encoding Error: {e}")
-        return None
+        return None, None
 
 def decode_image(input_path, password):
     try:
+        preview_path = generate_preview(input_path)
         extracted_message = lsb.reveal(input_path)
+        
         if extracted_message:
             if ":" in extracted_message:
-                stored_password, stored_message = extracted_message.split(":", 1)
-                return stored_message if stored_password == password else "Incorrect password!"
-            return extracted_message
-        return "No hidden message found!"
+                parts = extracted_message.split(":")
+                if len(parts) == 3:  # watermark:password:message
+                    stored_password, stored_message = parts[1], parts[2]
+                else:  # password:message
+                    stored_password, stored_message = parts
+                
+                return stored_message if stored_password == password else "Incorrect password!", preview_path
+            return extracted_message, preview_path
+        return "No hidden message found!", preview_path
     except Exception as e:
         logger.error(f"Image Decoding Error: {e}")
-        return f"Error decoding image: {str(e)}"
+        return f"Error decoding image: {str(e)}", None
 
 # TEXT SECTION
 def encode_txt(input_path, message, password):
@@ -152,7 +194,6 @@ def decode_txt(input_path, password):
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
             return stored_message if stored_password == password else "Incorrect password!"
-        
         return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
         logger.error(f"TXT Decoding Error: {e}")
@@ -186,7 +227,6 @@ def decode_docx(input_path, password):
         if extracted_message and ":" in extracted_message:
             stored_password, stored_message = extracted_message.split(":", 1)
             return stored_message if stored_password == password else "Incorrect password!"
-        
         return extracted_message if extracted_message else "No hidden message found!"
     except Exception as e:
         logger.error(f"DOCX Decoding Error: {e}")
@@ -343,30 +383,41 @@ def decode_video(input_path, password):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", testimonials=TESTIMONIALS)
 
 @app.route("/encode", methods=["POST"])
 def encode():
     uploaded_file = request.files.get("file")
     message = request.form.get("message")
     password = request.form.get("password", "")
+    watermark = request.form.get("watermark", "")
 
     if not uploaded_file or not message:
-        return jsonify({"error": "File and message are required!"}), 400
+        return jsonify({
+            "error": "File and message are required!",
+            "status": "error"
+        }), 400
 
-    # File size check removed
-    uploaded_file.seek(0)
+    filename = secure_filename(uploaded_file.filename)
+    if not filename:
+        return jsonify({
+            "error": "Invalid filename!",
+            "status": "error"
+        }), 400
 
     temp_dir = tempfile.mkdtemp()
-    file_path = os.path.join(temp_dir, uploaded_file.filename)
+    file_path = os.path.join(temp_dir, filename)
     uploaded_file.save(file_path)
 
     ext = os.path.splitext(file_path)[1].lower()
     output_file = None
+    preview_file = None
 
     try:
+        start_time = time.time()
+        
         if ext in [".png", ".jpg", ".jpeg"]:
-            output_file = encode_image(file_path, message, password)
+            output_file, preview_file = encode_image(file_path, message, password, watermark)
         elif ext == ".txt":
             output_file = encode_txt(file_path, message, password)
         elif ext == ".pdf":
@@ -378,28 +429,46 @@ def encode():
         elif ext in [".mp4", ".avi", ".mov"]:
             output_file = encode_video(file_path, message, password)
         else:
-            return jsonify({"error": "Unsupported file format!"}), 400
+            return jsonify({
+                "error": "Unsupported file format!",
+                "status": "error"
+            }), 400
 
         if output_file and os.path.exists(output_file):
-            # Upload to Google Drive
+            processing_time = round(time.time() - start_time, 2)
+            
             unique_id = str(uuid.uuid4())
             final_filename = f"encoded_{unique_id}_{os.path.basename(output_file)}"
             share_url = upload_to_drive(output_file, final_filename)
 
             with open(output_file, "rb") as f:
                 checksum = hashlib.sha256(f.read()).hexdigest()
-            response = send_file(output_file, as_attachment=True, download_name=final_filename)
-            response.headers["X-Checksum"] = checksum
+            
+            response_data = {
+                "status": "success",
+                "filename": final_filename,
+                "checksum": checksum,
+                "processing_time": processing_time,
+                "preview_url": url_for('static', filename=os.path.basename(preview_file)) if preview_file else None
+            }
+            
             if share_url:
-                response.headers["X-Share-URL"] = share_url
-            else:
-                # Fallback URL if Google Drive fails (optional)
-                response.headers["X-Share-URL"] = "https://example.com/fallback"  # Replace with a real fallback if needed
+                response_data["share_url"] = share_url
+            
+            response = send_file(output_file, as_attachment=True, download_name=final_filename)
+            response.headers["X-Response-Data"] = json.dumps(response_data)
             return response
-        return jsonify({"error": "Failed to encode file!"}), 500
+        
+        return jsonify({
+            "error": "Failed to encode file!",
+            "status": "error"
+        }), 500
     except Exception as e:
         logger.error(f"Encode Endpoint Error: {e}")
-        return jsonify({"error": f"Encoding failed: {str(e)}"}), 500
+        return jsonify({
+            "error": f"Encoding failed: {str(e)}",
+            "status": "error"
+        }), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -409,21 +478,31 @@ def decode():
     password = request.form.get("password", "")
 
     if not uploaded_file:
-        return jsonify({"error": "File is required!"}), 400
+        return jsonify({
+            "error": "File is required!",
+            "status": "error"
+        }), 400
 
-    # File size check removed
-    uploaded_file.seek(0)
+    filename = secure_filename(uploaded_file.filename)
+    if not filename:
+        return jsonify({
+            "error": "Invalid filename!",
+            "status": "error"
+        }), 400
 
     temp_dir = tempfile.mkdtemp()
-    file_path = os.path.join(temp_dir, uploaded_file.filename)
+    file_path = os.path.join(temp_dir, filename)
     uploaded_file.save(file_path)
 
     ext = os.path.splitext(file_path)[1].lower()
     decoded_message = None
+    preview_file = None
 
     try:
+        start_time = time.time()
+        
         if ext in [".png", ".jpg", ".jpeg"]:
-            decoded_message = decode_image(file_path, password)
+            decoded_message, preview_file = decode_image(file_path, password)
         elif ext == ".txt":
             decoded_message = decode_txt(file_path, password)
         elif ext == ".pdf":
@@ -435,15 +514,38 @@ def decode():
         elif ext in [".mp4", ".avi", ".mov"]:
             decoded_message = decode_video(file_path, password)
         else:
-            return jsonify({"error": "Unsupported file format!"}), 400
+            return jsonify({
+                "error": "Unsupported file format!",
+                "status": "error"
+            }), 400
 
-        return jsonify({"message": decoded_message})
+        processing_time = round(time.time() - start_time, 2)
+        
+        return jsonify({
+            "status": "success",
+            "message": decoded_message,
+            "preview_url": url_for('static', filename=os.path.basename(preview_file)) if preview_file else None,
+            "processing_time": processing_time
+        })
     except Exception as e:
         logger.error(f"Decode Endpoint Error: {e}")
-        return jsonify({"error": f"Failed to decode file: {str(e)}"}), 500
+        return jsonify({
+            "error": f"Failed to decode file: {str(e)}",
+            "status": "error"
+        }), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
+@app.route('/privacy')
+def privacy():
+    return jsonify({
+        "privacy_policy": "SteganoVault does not store any of your files or messages. All processing happens in your browser and files are deleted immediately after processing. We respect your privacy!"
+    })
+
 if __name__ == "__main__":
+    # Create static directory if it doesn't exist
+    if not os.path.exists('static'):
+        os.makedirs('static')
+    
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
