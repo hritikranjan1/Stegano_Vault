@@ -1194,17 +1194,13 @@
                 }
             }
 
-            // Updated Share Challenge function
+            // Updated Share Challenge function to prevent duplication
             function shareChallenge(shareUrl) {
-                // Normalize the shareUrl to use ?usp=drivesdk
-                const normalizedShareUrl = shareUrl.replace('usp=sharing', 'usp=drivesdk');
-                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${normalizedShareUrl} and decode it at: https://stegano-vault.onrender.com/`;
+                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${shareUrl} and decode it at: https://stegano-vault.onrender.com/`;
                 
                 if (navigator.share && navigator.canShare) {
                     navigator.share({
-                        title: 'SteganoVault Challenge',
-                        text: shareText,
-                        url: normalizedShareUrl
+                        text: shareText
                     }).then(() => {
                         console.log('Challenge shared successfully!');
                     }).catch((error) => {
