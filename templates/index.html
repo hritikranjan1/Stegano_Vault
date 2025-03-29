@@ -6,6 +6,8 @@
     <title>SteganoVault - Secret Hiding Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         [data-theme="dark"] {
             --bg-color: #1a202c;
@@ -226,6 +228,37 @@
             padding: 0.3rem 0.6rem;
             border-radius: 15px;
             font-size: 0.9rem;
+        }
+
+        .send-button.sending {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-button.sending::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: sending 1s infinite;
+        }
+
+        @keyframes sending {
+            100% { left: 100%; }
+        }
+
+        .confirmation-message {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .confirmation-message.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .share-challenge {
@@ -820,7 +853,7 @@
             <ul>
                 <li>Use strong passwords for added security.</li>
                 <li>Choose high-quality carrier files.</li>
-                <li>Avoid predictable Bens.</li>
+                <li>Avoid predictable patterns.</li>
                 <li>Test the file after encoding.</li>
             </ul>
             <h3>⚠️ Limitations</h3>
@@ -875,6 +908,29 @@
             <img src="https://github.com/hritikranjan1/Imagehosting/blob/main/kamal.png?raw=true" alt="Kamaljit Chauhan" class="mx-auto rounded-full shadow-lg">
             <p class="font-semibold mt-2 text-lg sm:text-xl">Kamaljit Chauhan</p>
             <a href="https://github.com/Kamaljit8708885373" class="text-blue-500 hover:text-blue-600 transition-colors text-sm sm:text-base">GitHub</a>
+        </div>
+    </div>
+
+    <!-- Contact Us Section (Updated to Smaller Size) -->
+    <div class="w-full max-w-md mb-8 mt-8">
+        <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center">Contact Us</h3>
+        <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-3 motion-fade glow-effect">
+            <form id="contactForm" class="space-y-2">
+                <div>
+                    <label for="name" class="block text-sm">Name:</label>
+                    <input type="text" id="name" name="name" class="w-full p-1 border rounded bg-transparent text-sm" placeholder="Your Name" required>
+                </div>
+                <div>
+                    <label for="email" class="block text-sm">Email:</label>
+                    <input type="email" id="email" name="email" class="w-full p-1 border rounded bg-transparent text-sm" placeholder="Your Email" required>
+                </div>
+                <div>
+                    <label for="message" class="block text-sm">Message:</label>
+                    <textarea id="message" name="message" class="w-full p-1 border rounded bg-transparent text-sm" rows="2" placeholder="Your Message" required></textarea>
+                </div>
+                <button type="submit" id="sendMessageBtn" class="bg-[var(--button-bg)] text-white px-3 py-1 rounded w-full motion-button glow-effect text-sm">Send Message</button>
+            </form>
+            <div id="confirmationMessage" class="text-center mt-2 text-green-500 confirmation-message hidden text-sm">✅ Message sent successfully! We'll get back to you soon.</div>
         </div>
     </div>
 
@@ -963,7 +1019,16 @@
     </div>
 
     <script>
+        // Wait for DOM and EmailJS SDK to load
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize EmailJS with your Public Key
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init("jocUFhKyehMFmQgYW"); // Your EmailJS Public Key
+                console.log("EmailJS initialized successfully with Public Key: jocUFhKyehMFmQgYW");
+            } else {
+                console.error("EmailJS SDK failed to load. Check network or CDN URL.");
+            }
+
             // Theme Switcher
             const themeToggle = document.getElementById('theme-toggle');
             themeToggle.addEventListener('change', function() {
@@ -1346,6 +1411,50 @@
 
             // Contributors Animation
             document.querySelector('.contributors').classList.add('show');
+
+            // Contact Form Submission with EmailJS
+            const contactForm = document.getElementById('contactForm');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            const confirmationMessage = document.getElementById('confirmationMessage');
+
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Add sending animation and disable button
+                sendMessageBtn.classList.add('sending');
+                sendMessageBtn.textContent = 'Sending...';
+                sendMessageBtn.disabled = true;
+
+                const templateParams = {
+                    from_name: document.getElementById('name').value,
+                    from_email: document.getElementById('email').value,
+                    message: document.getElementById('message').value
+                };
+
+                console.log("Sending email with params:", templateParams);
+
+                emailjs.send('service_jkj2tfh', 'template_62s2pkv', templateParams)
+                    .then(function(response) {
+                        console.log('Email sent successfully!', response.status, response.text);
+                        sendMessageBtn.classList.remove('sending');
+                        sendMessageBtn.textContent = 'Send Message';
+                        sendMessageBtn.disabled = false;
+                        confirmationMessage.classList.remove('hidden');
+                        confirmationMessage.classList.add('show');
+                        contactForm.reset();
+
+                        setTimeout(() => {
+                            confirmationMessage.classList.remove('show');
+                            confirmationMessage.classList.add('hidden');
+                        }, 5000);
+                    }, function(error) {
+                        console.error('Failed to send email:', error);
+                        sendMessageBtn.classList.remove('sending');
+                        sendMessageBtn.textContent = 'Send Message';
+                        sendMessageBtn.disabled = false;
+                        alert('Failed to send message: ' + (error.text || 'Unknown error') + '. Check console for details.');
+                    });
+            });
         });
     </script>
 </body>

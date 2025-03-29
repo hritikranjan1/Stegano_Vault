@@ -21,6 +21,9 @@ import json
 from werkzeug.utils import secure_filename
 import time
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Load environment variables from .env file
 load_dotenv()
@@ -545,6 +548,78 @@ def privacy():
     return jsonify({
         "privacy_policy": "SteganoVault does not store any of your files or messages. All processing happens in your browser and files are deleted immediately after processing. We respect your privacy!"
     })
+
+# Feedback and Contact Form Routes
+@app.route("/submit_feedback", methods=["POST"])
+def submit_feedback():
+    try:
+        data = request.get_json()
+        name = data.get('name', 'Anonymous')
+        email = data.get('email', '')
+        rating = int(data.get('rating', 5))
+        comment = data.get('comment', '')
+        
+        # Log feedback
+        feedback = f"New Feedback:\nName: {name}\nEmail: {email}\nRating: {rating}/5\nComment: {comment}"
+        logger.info(feedback)
+        
+        # Send email notification
+        send_notification_email("New Feedback Received", feedback)
+        
+        return jsonify({"status": "success", "message": "Thank you for your feedback!"})
+    except Exception as e:
+        logger.error(f"Feedback submission error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+@app.route("/submit_contact", methods=["POST"])
+def submit_contact():
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        email = data.get('email')
+        subject = data.get('subject')
+        message = data.get('message')
+        
+        if not all([name, email, subject, message]):
+            return jsonify({"status": "error", "message": "All fields are required"}), 400
+        
+        # Log contact
+        contact_msg = f"New Contact:\nName: {name}\nEmail: {email}\nSubject: {subject}\nMessage: {message}"
+        logger.info(contact_msg)
+        
+        # Send email notification
+        send_notification_email("New Contact Form Submission", contact_msg)
+        
+        return jsonify({"status": "success", "message": "Thank you for contacting us!"})
+    except Exception as e:
+        logger.error(f"Contact submission error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+def send_notification_email(subject, content):
+    try:
+        sender_email = os.getenv("SMTP_EMAIL")
+        receiver_email = os.getenv("ADMIN_EMAIL")
+        password = os.getenv("SMTP_PASSWORD")
+        
+        if not all([sender_email, receiver_email, password]):
+            logger.warning("Email credentials not configured - skipping email notification")
+            return False
+        
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+        msg['Subject'] = f"{subject} - SteganoVault"
+        
+        msg.attach(MIMEText(content, 'plain'))
+        
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
+        
+        return True
+    except Exception as e:
+        logger.error(f"Email sending error: {e}")
+        return False
 
 if __name__ == "__main__":
     # Create static directory if it doesn't exist
