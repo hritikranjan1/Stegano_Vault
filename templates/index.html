@@ -6,8 +6,8 @@
     <title>SteganoVault - Secret Hiding Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
-    <!-- EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         [data-theme="dark"] {
             --bg-color: #1a202c;
@@ -615,6 +615,24 @@
             color: var(--text-color);
         }
 
+        /* New styles for review confirmation */
+        .review-confirmation {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            background-color: rgba(0, 200, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            text-align: center;
+            border-left: 4px solid #00cc00;
+        }
+
+        .review-confirmation.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         @media (max-width: 480px) {
             h1 { font-size: 2rem; }
             h2 { font-size: 1.5rem; }
@@ -685,6 +703,9 @@
             <a href="#fun-activities" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Fun Activities</a>
             <a href="#contributors" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Contributors</a>
             <a href="https://github.com/hritikranjan1/SteganoVault.git" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">GitHub</a>
+            <button id="authBtn" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">
+                <i class="fas fa-user"></i> <span id="authStatus">Login</span>
+            </button>
         </div>
     </nav>
 
@@ -783,22 +804,85 @@
         </div>
     </div>
 
-    <!-- Testimonials Section -->
+    <!-- User Reviews Section -->
     <div class="w-full max-w-2xl mb-6">
-        <h3 class="text-xl font-semibold mb-2 text-center">What Agents Say</h3>
-        <div class="testimonial-carousel-container relative overflow-hidden h-40">
-            <div class="testimonial-carousel">
-                {% for testimonial in testimonials %}
-                <div class="testimonial-item p-4">
-                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
-                        <div class="rating-stars mb-2">
-                            {% for _ in range(testimonial.rating) %}★{% endfor %}
-                        </div>
-                        <p class="italic">"{{ testimonial.text }}"</p>
-                        <p class="text-right font-semibold mt-2">- {{ testimonial.name }}</p>
+        <h3 class="text-xl font-semibold mb-3 text-center">
+            Share Your Experience
+            <button id="reviewInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg tooltip ml-2">
+                ℹ️
+                <span class="tooltiptext">Please login first to submit your review</span>
+            </button>
+        </h3>
+        
+        <!-- Review Form (hidden by default) -->
+        <div id="reviewForm" class="bg-[var(--card-bg)] p-4 rounded-lg mb-4 glow-effect hidden">
+            <form class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="reviewName" class="block text-sm">Name:</label>
+                        <input type="text" id="reviewName" class="w-full p-2 border rounded bg-transparent text-sm" placeholder="Your name" required>
+                    </div>
+                    <div>
+                        <label for="reviewRating" class="block text-sm">Rating:</label>
+                        <select id="reviewRating" class="w-full p-2 border rounded bg-transparent text-sm" required>
+                            <option value="">Select</option>
+                            <option value="5">★★★★★</option>
+                            <option value="4">★★★★</option>
+                            <option value="3">★★★</option>
+                            <option value="2">★★</option>
+                            <option value="1">★</option>
+                        </select>
                     </div>
                 </div>
-                {% endfor %}
+                <div>
+                    <label for="reviewText" class="block text-sm">Review:</label>
+                    <textarea id="reviewText" class="w-full p-2 border rounded bg-transparent text-sm" rows="3" placeholder="Your feedback..." required></textarea>
+                </div>
+                <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full motion-button glow-effect text-sm">Submit</button>
+            </form>
+            <div id="reviewConfirmation" class="review-confirmation hidden"></div>
+        </div>
+        
+        <!-- User Reviews Display -->
+        <div id="userReviewsContainer" class="space-y-4">
+            <!-- Reviews will be loaded here dynamically -->
+            <div class="text-center py-4">
+                <div class="spinner"></div>
+                <p>Loading reviews...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testimonials Section -->
+    <div class="w-full max-w-2xl mb-6">
+        <div class="flex items-center justify-center gap-2">
+            <h3 class="text-xl font-semibold mb-2 text-center">What Agents Say</h3>
+            
+        </div>
+        <div class="testimonial-carousel-container relative overflow-hidden h-40">
+            <div class="testimonial-carousel" id="dynamicTestimonials">
+                <!-- Testimonials will be loaded here dynamically -->
+                <div class="testimonial-item p-4">
+                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                        <div class="rating-stars mb-2">★★★★★</div>
+                        <p class="italic">"SteganoVault made hiding messages so fun and easy!"</p>
+                        <p class="text-right font-semibold mt-2">- Agent X</p>
+                    </div>
+                </div>
+                <div class="testimonial-item p-4">
+                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                        <div class="rating-stars mb-2">★★★★★</div>
+                        <p class="italic">"A must-have tool for any spy enthusiast!"</p>
+                        <p class="text-right font-semibold mt-2">- Codebreaker Y</p>
+                    </div>
+                </div>
+                <div class="testimonial-item p-4">
+                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                        <div class="rating-stars mb-2">★★★★</div>
+                        <p class="italic">"The perfect balance of security and usability."</p>
+                        <p class="text-right font-semibold mt-2">- Security Expert Z</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -911,7 +995,7 @@
         </div>
     </div>
 
-    <!-- Contact Us Section (Updated to Smaller Size) -->
+    <!-- Contact Us Section -->
     <div class="w-full max-w-md mb-8 mt-8">
         <h3 class="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 motion-fade glow-effect text-center">Contact Us</h3>
         <div class="bg-[var(--card-bg)] shadow-lg rounded-lg p-3 motion-fade glow-effect">
@@ -1015,6 +1099,26 @@
                 <li>The game resets after 10 seconds, showing your final score.</li>
             </ul>
             <p class="text-sm sm:text-base"><b>Details:</b> It's a playful way to test your reflexes and boost your score. More activities may be added in the future!</p>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="authModalContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div id="resetPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="resetPasswordContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
         </div>
     </div>
 
@@ -1261,7 +1365,7 @@
 
             // Updated Share Challenge function to prevent duplication
             function shareChallenge(shareUrl) {
-                const shareText = `I’ve hidden a secret with SteganoVault—can you crack it? Get the file here: ${shareUrl} and decode it at: https://stegano-vault.onrender.com/`;
+                const shareText = `I've hidden a secret with SteganoVault—can you crack it? Get the file here: ${shareUrl} and decode it at: https://stegano-vault.onrender.com/`;
                 
                 if (navigator.share && navigator.canShare) {
                     navigator.share({
@@ -1328,7 +1432,9 @@
                 stealthScore: document.getElementById('stealthScoreModal'),
                 badges: document.getElementById('badgesModal'),
                 shareChallenge: document.getElementById('shareChallengeModal'),
-                funActivities: document.getElementById('funActivitiesModal')
+                funActivities: document.getElementById('funActivitiesModal'),
+                auth: document.getElementById('authModal'),
+                resetPassword: document.getElementById('resetPasswordModal')
             };
 
             const buttons = {
@@ -1336,7 +1442,8 @@
                 stealthScore: document.getElementById('stealthScoreInfoBtn'),
                 badges: document.getElementById('badgesInfoBtn'),
                 shareChallenge: document.getElementById('shareChallengeInfoBtn'),
-                funActivities: document.getElementById('funActivitiesInfoBtn')
+                funActivities: document.getElementById('funActivitiesInfoBtn'),
+                auth: document.getElementById('authBtn')
             };
 
             Object.keys(buttons).forEach(key => {
@@ -1455,6 +1562,515 @@
                         alert('Failed to send message: ' + (error.text || 'Unknown error') + '. Check console for details.');
                     });
             });
+
+            // User Reviews Functionality
+            async function loadUserReviews() {
+                const container = document.getElementById('userReviewsContainer');
+                const testimonialContainer = document.getElementById('dynamicTestimonials');
+                
+                container.innerHTML = '<div class="text-center py-4"><div class="spinner"></div><p>Loading reviews...</p></div>';
+                
+                try {
+                    const response = await fetch('/api/reviews/latest');
+                    if (!response.ok) throw new Error('Failed to load reviews');
+                    
+                    const reviews = await response.json();
+                    
+                    // Load user reviews
+                    if (reviews.length === 0) {
+                        container.innerHTML = '<p class="text-center">No reviews yet. Be the first to review!</p>';
+                    } else {
+                        let html = '';
+                        reviews.forEach(review => {
+                            const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+                            const date = new Date(review.timestamp).toLocaleDateString();
+                            
+                            html += `
+                                <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                                    <div class="rating-stars mb-2">${stars}</div>
+                                    <p class="italic">"${review.text}"</p>
+                                    <div class="flex justify-between items-center mt-2">
+                                        <p class="font-semibold">- ${review.name}</p>
+                                        <p class="text-sm opacity-75">${date}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    }
+
+                    // Load testimonials (combine default with user reviews)
+                    const testimonialsResponse = await fetch('/api/testimonials');
+                    if (testimonialsResponse.ok) {
+                        const testimonialsData = await testimonialsResponse.json();
+                        let testimonialsHtml = '';
+                        
+                        testimonialsData.forEach(testimonial => {
+                            const stars = '★'.repeat(testimonial.rating) + '☆'.repeat(5 - testimonial.rating);
+                            testimonialsHtml += `
+                                <div class="testimonial-item p-4">
+                                    <div class="testimonial bg-[var(--card-bg)] p-4 rounded-lg glow-effect">
+                                        <div class="rating-stars mb-2">${stars}</div>
+                                        <p class="italic">"${testimonial.text}"</p>
+                                        <p class="text-right font-semibold mt-2">- ${testimonial.name}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        testimonialContainer.innerHTML = testimonialsHtml;
+                        // Reinitialize carousel with new testimonials
+                        currentTestimonial = 0;
+                        const newTestimonials = document.querySelectorAll('.testimonial-item');
+                        setInterval(() => {
+                            currentTestimonial = (currentTestimonial + 1) % newTestimonials.length;
+                            showTestimonial(currentTestimonial);
+                        }, 5000);
+                    }
+                } catch (error) {
+                    console.error('Error loading reviews:', error);
+                    container.innerHTML = '<p class="text-center text-red-500">Failed to load reviews. Please try again later.</p>';
+                }
+            }
+
+            // Submit Review Form
+            document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('reviewName').value.trim();
+                const text = document.getElementById('reviewText').value.trim();
+                const rating = document.getElementById('reviewRating').value;
+                const confirmation = document.getElementById('reviewConfirmation');
+                
+                if (!name || !text || !rating) {
+                    alert('Please fill all fields');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/reviews', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            text: text,
+                            rating: parseInt(rating)
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to submit review');
+                    }
+                    
+                    // Clear form and show confirmation
+                    this.reset();
+                    confirmation.textContent = data.message || 'Thank you for your review!';
+                    confirmation.classList.remove('hidden');
+                    
+                    // Add animation to confirmation message
+                    setTimeout(() => {
+                        confirmation.classList.add('show');
+                    }, 10);
+                    
+                    // Hide after 3 seconds
+                    setTimeout(() => {
+                        confirmation.classList.remove('show');
+                        setTimeout(() => {
+                            confirmation.classList.add('hidden');
+                        }, 500); // Match the CSS transition duration
+                    }, 3000);
+                    
+                    // Reload reviews and testimonials
+                    loadUserReviews();
+                } catch (error) {
+                    console.error('Error submitting review:', error);
+                    alert(error.message || 'Failed to submit review. Please try again later.');
+                }
+            });
+
+            // Auth Modal Management
+            const authModal = document.getElementById('authModal');
+            const authModalContent = document.getElementById('authModalContent');
+            const authBtn = document.getElementById('authBtn');
+            const authStatus = document.getElementById('authStatus');
+
+            // Check auth status on page load
+            function checkAuthStatus() {
+                fetch('/auth/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.authenticated) {
+                            authStatus.textContent = 'Logout';
+                            // Enable review submission
+                            document.getElementById('reviewForm').classList.remove('hidden');
+                            document.querySelector('#reviewForm p')?.classList.add('hidden');
+                            // Update info tooltip
+                            document.getElementById('reviewInfoBtn').querySelector('.tooltiptext').textContent = 
+                                'Share your experience with SteganoVault';
+                        } else {
+                            authStatus.textContent = 'Login';
+                            // Disable review submission
+                            document.getElementById('reviewForm').classList.add('hidden');
+                            document.querySelector('#reviewForm p')?.classList.remove('hidden');
+                            // Update info tooltip
+                            document.getElementById('reviewInfoBtn').querySelector('.tooltiptext').textContent = 
+                                'Please login first to submit your review';
+                        }
+                    });
+            }
+
+            // Show auth modal with appropriate content
+            function showAuthModal(content) {
+                authModalContent.innerHTML = content;
+                authModal.style.display = 'block';
+            }
+
+            // Show reset password modal
+            function showResetPasswordModal(content) {
+                document.getElementById('resetPasswordContent').innerHTML = content;
+                modals.resetPassword.style.display = 'block';
+            }
+
+            // Login form
+            function showLoginForm() {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Login to SteganoVault</h3>
+                    <form id="loginForm" class="space-y-4">
+                        <div>
+                            <label for="loginEmail" class="block text-sm">Email:</label>
+                            <input type="email" id="loginEmail" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <div>
+                            <label for="loginPassword" class="block text-sm">Password:</label>
+                            <input type="password" id="loginPassword" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Login</button>
+                        <p class="text-center text-sm">Don't have an account? <a href="#" id="showRegister" class="text-blue-400">Register</a></p>
+                        <p class="text-center text-sm"><a href="#" id="showForgotPassword" class="text-blue-400">Forgot password?</a></p>
+                    </form>
+                `;
+                showAuthModal(content);
+                
+                document.getElementById('loginForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('loginEmail').value;
+                    const password = document.getElementById('loginPassword').value;
+                    
+                    fetch('/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            authModal.style.display = 'none';
+                            checkAuthStatus();
+                        }
+                    });
+                });
+                
+                document.getElementById('showRegister').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showRegisterForm();
+                });
+
+                document.getElementById('showForgotPassword').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showForgotPasswordForm();
+                });
+            }
+
+            // Register form
+            function showRegisterForm() {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Register for SteganoVault</h3>
+                    <form id="registerForm" class="space-y-4">
+                        <div>
+                            <label for="registerName" class="block text-sm">Name:</label>
+                            <input type="text" id="registerName" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <div>
+                            <label for="registerEmail" class="block text-sm">Email:</label>
+                            <input type="email" id="registerEmail" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <div>
+                            <label for="registerPassword" class="block text-sm">Password:</label>
+                            <input type="password" id="registerPassword" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Register</button>
+                        <p class="text-center text-sm">Already have an account? <a href="#" id="showLogin" class="text-blue-400">Login</a></p>
+                    </form>
+                `;
+                showAuthModal(content);
+                
+                document.getElementById('registerForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('registerName').value;
+                    const email = document.getElementById('registerEmail').value;
+                    const password = document.getElementById('registerPassword').value;
+                    
+                    fetch('/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            showVerificationForm(email);
+                        }
+                    });
+                });
+                
+                document.getElementById('showLogin').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showLoginForm();
+                });
+            }
+
+            // Forgot password form
+            function showForgotPasswordForm() {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Reset Password</h3>
+                    <form id="forgotPasswordForm" class="space-y-4">
+                        <div>
+                            <label for="forgotEmail" class="block text-sm">Email:</label>
+                            <input type="email" id="forgotEmail" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Send Reset Link</button>
+                        <p class="text-center text-sm"><a href="#" id="backToLogin" class="text-blue-400">Back to Login</a></p>
+                    </form>
+                `;
+                showAuthModal(content);
+                
+                document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('forgotEmail').value;
+                    
+                    fetch('/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            authModal.style.display = 'none';
+                            alert('Password reset link sent to your email!');
+                        }
+                    });
+                });
+                
+                document.getElementById('backToLogin').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showLoginForm();
+                });
+            }
+
+            // Verification form
+            function showVerificationForm(email) {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Verify Your Email</h3>
+                    <p class="text-sm mb-4">We've sent a 6-digit code to ${email}. Please enter it below:</p>
+                    <form id="verifyForm" class="space-y-4">
+                        <input type="hidden" id="verifyEmail" value="${email}">
+                        <div>
+                            <label for="verifyCode" class="block text-sm">Verification Code:</label>
+                            <input type="text" id="verifyCode" class="w-full p-2 border rounded bg-transparent" required maxlength="6">
+                        </div>
+                        <div>
+                            <label for="verifyPassword" class="block text-sm">Password:</label>
+                            <input type="password" id="verifyPassword" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <div>
+                            <label for="verifyName" class="block text-sm">Name:</label>
+                            <input type="text" id="verifyName" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Verify</button>
+                        <p class="text-center text-sm">Didn't receive code? <a href="#" id="resendCode" class="text-blue-400">Resend</a></p>
+                    </form>
+                `;
+                showAuthModal(content);
+                
+                document.getElementById('verifyForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('verifyEmail').value;
+                    const code = document.getElementById('verifyCode').value;
+                    const password = document.getElementById('verifyPassword').value;
+                    const name = document.getElementById('verifyName').value;
+                    
+                    fetch('/auth/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            otp: code,
+                            password: password,
+                            name: name
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('Email verified successfully! You can now login.');
+                            showLoginForm();
+                        }
+                    });
+                });
+                
+                document.getElementById('resendCode').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('verifyEmail').value;
+                    
+                    fetch('/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: 'resend-only' // Password not needed for resend
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('New verification code sent!');
+                        }
+                    });
+                });
+            }
+
+            // Handle password reset from URL token
+            function checkForPasswordResetToken() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                
+                if (token) {
+                    showResetPasswordForm(token);
+                }
+            }
+
+            function showResetPasswordForm(token) {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Reset Your Password</h3>
+                    <form id="resetPasswordForm" class="space-y-4">
+                        <input type="hidden" id="resetToken" value="${token}">
+                        <div>
+                            <label for="newPassword" class="block text-sm">New Password:</label>
+                            <input type="password" id="newPassword" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <div>
+                            <label for="confirmPassword" class="block text-sm">Confirm Password:</label>
+                            <input type="password" id="confirmPassword" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Reset Password</button>
+                    </form>
+                `;
+                showResetPasswordModal(content);
+                
+                document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const token = document.getElementById('resetToken').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    
+                    if (newPassword !== confirmPassword) {
+                        alert('Passwords do not match!');
+                        return;
+                    }
+                    
+                    fetch('/auth/reset-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            token: token,
+                            new_password: newPassword
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('Password updated successfully! You can now login with your new password.');
+                            modals.resetPassword.style.display = 'none';
+                            showLoginForm();
+                        }
+                    });
+                });
+            }
+
+            // Handle logout with notification
+            function handleLogout() {
+                fetch('/auth/logout', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        // Show logout notification
+                        const notification = document.createElement('div');
+                        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+                        notification.textContent = data.notification || 'Logged out successfully';
+                        document.body.appendChild(notification);
+                        
+                        // Remove notification after 3 seconds
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 3000);
+                    }
+                    checkAuthStatus();
+                });
+            }
+
+            // Auth button click handler
+            authBtn.addEventListener('click', function() {
+                if (authStatus.textContent === 'Logout') {
+                    handleLogout();
+                } else {
+                    showLoginForm();
+                }
+            });
+
+            // Initialize auth status check and load reviews
+            checkAuthStatus();
+            loadUserReviews();
+            checkForPasswordResetToken();
         });
     </script>
 </body>
