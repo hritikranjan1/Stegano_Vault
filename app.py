@@ -33,28 +33,53 @@ import bcrypt
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'b66fa4bb9e59cdffcbdb0d9d165305fe2f3ef5c58e857985f97d908c6f647ed6')
+
+# ========================
+# SECURITY CONFIGURATION
+# ========================
+
+# Generate a new secret key if not in environment
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
+
+# Configure security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    if 'Cache-Control' not in response.headers:
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Email configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+# ========================
+# EMAIL CONFIGURATION
+# ========================
+
+# Email service configuration (using Brevo/Sendinblue as recommended)
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp-relay.brevo.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')  # Your Brevo login email
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Brevo SMTP key
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@steganovault.com')
 
+# Initialize Flask-Mail
 mail = Mail(app)
 
 # Serializer for generating tokens
 serializer = URLSafeTimedSerializer(app.secret_key)
 
+# ========================
+# APPLICATION CONFIGURATION
+# ========================
+
 # Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
-GOOGLE_DRIVE_FOLDER_ID = os.environ.get('GOOGLE_DRIVE_FOLDER_ID', '1J-G2PZgqSzrwT-AGAlBX47xBH96T1me-')
+GOOGLE_DRIVE_FOLDER_ID = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
 
 # User data files
 DATA_DIR = 'data'
@@ -101,7 +126,10 @@ def format_json_file(file_path):
 for file_path in [USER_REVIEWS_FILE, USERS_FILE, OTP_STORAGE_FILE, PASSWORD_RESET_TOKENS]:
     format_json_file(file_path)
 
-# Authentication decorator
+# ========================
+# AUTHENTICATION UTILITIES
+# ========================
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -110,7 +138,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Helper functions for user management
 def get_user_by_email(email):
     try:
         with open(USERS_FILE, 'r') as f:
@@ -273,7 +300,10 @@ def verify_password_reset_token(token, max_age=3600):
         logger.error(f"Error verifying password reset token: {str(e)}")
         return None
 
-# Authentication routes
+# ========================
+# AUTHENTICATION ROUTES
+# ========================
+
 @app.route('/auth/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -298,7 +328,8 @@ def register():
     # Send OTP email
     try:
         msg = Message('Your SteganoVault Verification Code',
-                      recipients=[email])
+                     recipients=[email],
+                     sender=app.config['MAIL_DEFAULT_SENDER'])
         msg.body = f'Your OTP for SteganoVault is: {otp}\nThis code will expire in 5 minutes.'
         mail.send(msg)
         logger.info(f"OTP sent successfully to {email}")
@@ -413,7 +444,8 @@ def forgot_password():
     # Send password reset email
     try:
         msg = Message('Password Reset Request',
-                      recipients=[email])
+                     recipients=[email],
+                     sender=app.config['MAIL_DEFAULT_SENDER'])
         msg.body = f'To reset your password, click the following link:\n\n{reset_link}\n\nThis link will expire in 1 hour.'
         mail.send(msg)
     except Exception as e:
@@ -457,7 +489,10 @@ def reset_password():
     else:
         return jsonify({'error': 'Failed to update password'}), 500
 
-# Reviews endpoints
+# ========================
+# REVIEWS ENDPOINTS
+# ========================
+
 @app.route('/api/reviews', methods=['GET', 'POST'])
 def handle_reviews():
     if request.method == 'GET':
@@ -574,8 +609,10 @@ def get_testimonials():
         logger.error(f"Error getting testimonials: {e}")
         return jsonify([])
 
+# ========================
+# FILE PROCESSING FUNCTIONS
+# ========================
 
-# File processing functions
 def convert_to_png(input_path):
     """Convert image to PNG format."""
     try:
@@ -904,6 +941,10 @@ def upload_to_drive(file_path, file_name):
         logger.error(f"Failed to upload to Google Drive: {str(e)}")
         return None
 
+# ========================
+# MAIN APPLICATION ROUTES
+# ========================
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -1068,6 +1109,10 @@ def privacy():
     return jsonify({
         "privacy_policy": "SteganoVault does not store any of your files or messages. All processing happens in your browser and files are deleted immediately after processing. We respect your privacy!"
     })
+
+# ========================
+# APPLICATION STARTUP
+# ========================
 
 if __name__ == "__main__":
     # Create static directory if it doesn't exist

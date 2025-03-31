@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SteganoVault - Secret Hiding Hub</title>
+    <head>
+        <title>SteganoVault - Secret Hiding Hub</title>
+        <link rel="icon" type="image/png" href="https://github.com/hritikranjan1/Imagehosting/blob/main/ChatGPT%20Image%20Mar%2031,%202025,%2011_47_08%20AM.png?raw=true">
+    </head>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -816,7 +820,7 @@
         
         <!-- Review Form (hidden by default) -->
         <div id="reviewForm" class="bg-[var(--card-bg)] p-4 rounded-lg mb-4 glow-effect hidden">
-            <form class="space-y-3">
+            <form id="reviewFormElement" class="space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="reviewName" class="block text-sm">Name:</label>
@@ -1634,7 +1638,7 @@
             }
 
             // Submit Review Form
-            document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            document.getElementById('reviewFormElement').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const name = document.getElementById('reviewName').value.trim();
@@ -1667,7 +1671,7 @@
                     }
                     
                     // Clear form and show confirmation
-                    this.reset();
+                    document.getElementById('reviewFormElement').reset();
                     confirmation.textContent = data.message || 'Thank you for your review!';
                     confirmation.classList.remove('hidden');
                     
@@ -1792,7 +1796,7 @@
                 });
             }
 
-            // Register form
+            // Register form with OTP info button
             function showRegisterForm() {
                 const content = `
                     <h3 class="text-lg sm:text-xl font-semibold mb-4">Register for SteganoVault</h3>
@@ -1848,56 +1852,18 @@
                 });
             }
 
-            // Forgot password form
-            function showForgotPasswordForm() {
-                const content = `
-                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Reset Password</h3>
-                    <form id="forgotPasswordForm" class="space-y-4">
-                        <div>
-                            <label for="forgotEmail" class="block text-sm">Email:</label>
-                            <input type="email" id="forgotEmail" class="w-full p-2 border rounded bg-transparent" required>
-                        </div>
-                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Send Reset Link</button>
-                        <p class="text-center text-sm"><a href="#" id="backToLogin" class="text-blue-400">Back to Login</a></p>
-                    </form>
-                `;
-                showAuthModal(content);
-                
-                document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const email = document.getElementById('forgotEmail').value;
-                    
-                    fetch('/auth/forgot-password', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: email
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            alert(data.error);
-                        } else {
-                            authModal.style.display = 'none';
-                            alert('Password reset link sent to your email!');
-                        }
-                    });
-                });
-                
-                document.getElementById('backToLogin').addEventListener('click', function(e) {
-                    e.preventDefault();
-                    showLoginForm();
-                });
-            }
-
-            // Verification form
+            // Verification form with OTP info
             function showVerificationForm(email) {
                 const content = `
                     <h3 class="text-lg sm:text-xl font-semibold mb-4">Verify Your Email</h3>
                     <p class="text-sm mb-4">We've sent a 6-digit code to ${email}. Please enter it below:</p>
+                    <div class="flex items-center mb-2">
+                        <span class="text-sm">Check your spam folder if you don't see the email</span>
+                        <button id="otpInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg tooltip ml-1">
+                            ℹ️
+                            <span class="tooltiptext">OTP might be in your spam folder. Check there if you don't see it in your inbox.</span>
+                        </button>
+                    </div>
                     <form id="verifyForm" class="space-y-4">
                         <input type="hidden" id="verifyEmail" value="${email}">
                         <div>
@@ -1970,6 +1936,51 @@
                             alert('New verification code sent!');
                         }
                     });
+                });
+            }
+
+            // Forgot password form
+            function showForgotPasswordForm() {
+                const content = `
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4">Reset Password</h3>
+                    <form id="forgotPasswordForm" class="space-y-4">
+                        <div>
+                            <label for="forgotEmail" class="block text-sm">Email:</label>
+                            <input type="email" id="forgotEmail" class="w-full p-2 border rounded bg-transparent" required>
+                        </div>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Send Reset Link</button>
+                        <p class="text-center text-sm"><a href="#" id="backToLogin" class="text-blue-400">Back to Login</a></p>
+                    </form>
+                `;
+                showAuthModal(content);
+                
+                document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = document.getElementById('forgotEmail').value;
+                    
+                    fetch('/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            authModal.style.display = 'none';
+                            alert('Password reset link sent to your email!');
+                        }
+                    });
+                });
+                
+                document.getElementById('backToLogin').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showLoginForm();
                 });
             }
 
