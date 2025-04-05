@@ -697,16 +697,12 @@
                 <option value="minimal-zen">🧘 Minimal Zen</option>
                 <option value="glitchcore">📺 Glitchcore</option>
             </select>
-            <a href="#steganovault" class="text-lg sm:text-xl font-bold bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors glow-effect w-full sm:w-auto text-center">
-                SteganoVault
-            </a>
+           
         </div>
         <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
-            <a href="#encode-decode" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Encode/Decode</a>
             <a href="#how-it-works" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">How It Works</a>
             <a href="#fun-activities" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Fun Activities</a>
             <a href="#contributors" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">Contributors</a>
-            <a href="https://github.com/hritikranjan1/SteganoVault.git" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">GitHub</a>
             <button id="authBtn" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">
                 <i class="fas fa-user"></i> <span id="authStatus">Login</span>
             </button>
@@ -774,8 +770,6 @@
         <label class="block mt-6 text-sm sm:text-lg md:text-xl">Optional Password:</label>
         <input type="password" id="passwordInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter password (optional)">
 
-        <label class="block mt-6 text-sm sm:text-lg md:text-xl">Custom Watermark (Images Only):</label>
-        <input type="text" id="watermarkInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter watermark text (optional)">
 
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
             <button id="encodeBtn" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect processing-animation hidden">🔒 Encoding...</button>
@@ -814,12 +808,12 @@
             Share Your Experience
             <button id="reviewInfoBtn" class="text-[var(--text-color)] hover:text-[var(--hover-bg)] text-lg tooltip ml-2">
                 ℹ️
-                <span class="tooltiptext">Please login first to submit your review</span>
+                <span class="tooltiptext">Share your experience with SteganoVault</span>
             </button>
         </h3>
         
-        <!-- Review Form (hidden by default) -->
-        <div id="reviewForm" class="bg-[var(--card-bg)] p-4 rounded-lg mb-4 glow-effect hidden">
+        <!-- Review Form (always visible) -->
+        <div id="reviewForm" class="bg-[var(--card-bg)] p-4 rounded-lg mb-4 glow-effect">
             <form id="reviewFormElement" class="space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -920,7 +914,6 @@
             <ul>
                 <li>🔐 <b>Secure Communication:</b> Hiding confidential messages in media files.</li>
                 <li>🕵️ <b>Cybersecurity:</b> Protecting sensitive data from hackers.</li>
-                <li>🎨 <b>Watermarking:</b> Embedding copyright information in images or videos.</li>
                 <li>📡 <b>Covert Operations:</b> Used in military and intelligence communication.</li>
             </ul>
         </div>
@@ -1227,7 +1220,6 @@
                 const file = fileInput.files[0];
                 const message = document.getElementById("messageInput").value;
                 const password = document.getElementById("passwordInput").value;
-                const watermark = document.getElementById("watermarkInput").value;
                 const output = document.getElementById("output");
                 const shareButton = document.getElementById("share-challenge");
                 const shareInfoBtn = document.getElementById("shareChallengeInfoBtn");
@@ -1251,7 +1243,6 @@
                 formData.append("file", file);
                 formData.append("message", message);
                 formData.append("password", password);
-                formData.append("watermark", watermark);
 
                 try {
                     const response = await fetch("/encode", {
@@ -1300,6 +1291,7 @@
                     encodeBtnReady.classList.remove('hidden');
                     encodeBtnProcessing.classList.add('hidden');
                     loading.classList.add('hidden');
+                    resetForm();
                 }
             }
 
@@ -1364,7 +1356,18 @@
                     decodeBtnReady.classList.remove('hidden');
                     decodeBtnProcessing.classList.add('hidden');
                     loading.classList.add('hidden');
+                    resetForm();
                 }
+            }
+
+            // Reset form after operations
+            function resetForm() {
+                fileInput.value = '';
+                fileNameDisplay.textContent = '';
+                previewBefore.classList.add('hidden');
+                previewAfter.classList.add('hidden');
+                document.getElementById("messageInput").value = '';
+                document.getElementById("passwordInput").value = '';
             }
 
             // Updated Share Challenge function to prevent duplication
@@ -1692,7 +1695,12 @@
                     loadUserReviews();
                 } catch (error) {
                     console.error('Error submitting review:', error);
-                    alert(error.message || 'Failed to submit review. Please try again later.');
+                    if (error.message.includes('Please login')) {
+                        showLoginForm();
+                        alert('Please login to submit a review');
+                    } else {
+                        alert(error.message || 'Failed to submit review. Please try again later.');
+                    }
                 }
             });
 
@@ -1709,20 +1717,8 @@
                     .then(data => {
                         if (data.authenticated) {
                             authStatus.textContent = 'Logout';
-                            // Enable review submission
-                            document.getElementById('reviewForm').classList.remove('hidden');
-                            document.querySelector('#reviewForm p')?.classList.add('hidden');
-                            // Update info tooltip
-                            document.getElementById('reviewInfoBtn').querySelector('.tooltiptext').textContent = 
-                                'Share your experience with SteganoVault';
                         } else {
                             authStatus.textContent = 'Login';
-                            // Disable review submission
-                            document.getElementById('reviewForm').classList.add('hidden');
-                            document.querySelector('#reviewForm p')?.classList.remove('hidden');
-                            // Update info tooltip
-                            document.getElementById('reviewInfoBtn').querySelector('.tooltiptext').textContent = 
-                                'Please login first to submit your review';
                         }
                     });
             }
@@ -1796,7 +1792,7 @@
                 });
             }
 
-            // Register form with OTP info button
+            // Register form with OTP info
             function showRegisterForm() {
                 const content = `
                     <h3 class="text-lg sm:text-xl font-semibold mb-4">Register for SteganoVault</h3>
@@ -1870,14 +1866,6 @@
                             <label for="verifyCode" class="block text-sm">Verification Code:</label>
                             <input type="text" id="verifyCode" class="w-full p-2 border rounded bg-transparent" required maxlength="6">
                         </div>
-                        <div>
-                            <label for="verifyPassword" class="block text-sm">Password:</label>
-                            <input type="password" id="verifyPassword" class="w-full p-2 border rounded bg-transparent" required>
-                        </div>
-                        <div>
-                            <label for="verifyName" class="block text-sm">Name:</label>
-                            <input type="text" id="verifyName" class="w-full p-2 border rounded bg-transparent" required>
-                        </div>
                         <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Verify</button>
                         <p class="text-center text-sm">Didn't receive code? <a href="#" id="resendCode" class="text-blue-400">Resend</a></p>
                     </form>
@@ -1888,8 +1876,6 @@
                     e.preventDefault();
                     const email = document.getElementById('verifyEmail').value;
                     const code = document.getElementById('verifyCode').value;
-                    const password = document.getElementById('verifyPassword').value;
-                    const name = document.getElementById('verifyName').value;
                     
                     fetch('/auth/verify', {
                         method: 'POST',
@@ -1898,9 +1884,7 @@
                         },
                         body: JSON.stringify({
                             email: email,
-                            otp: code,
-                            password: password,
-                            name: name
+                            otp: code
                         })
                     })
                     .then(response => response.json())
@@ -1990,7 +1974,16 @@
                 const token = urlParams.get('token');
                 
                 if (token) {
-                    showResetPasswordForm(token);
+                    // Verify token first
+                    fetch(`/auth/reset-password?token=${token}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert(data.error);
+                            } else if (data.valid) {
+                                showResetPasswordForm(token);
+                            }
+                        });
                 }
             }
 
@@ -2020,6 +2013,11 @@
                     
                     if (newPassword !== confirmPassword) {
                         alert('Passwords do not match!');
+                        return;
+                    }
+                    
+                    if (newPassword.length < 8) {
+                        alert('Password must be at least 8 characters');
                         return;
                     }
                     

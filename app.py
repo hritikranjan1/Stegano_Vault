@@ -28,6 +28,7 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from functools import wraps
 import bcrypt
+from supabase import create_client, Client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -38,10 +39,8 @@ app = Flask(__name__)
 # SECURITY CONFIGURATION
 # ========================
 
-# Generate a new secret key if not in environment
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 
-# Configure security headers
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -56,75 +55,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ========================
+# SUPABASE CONFIGURATION
+# ========================
+
+supabase_url = os.environ.get('SUPABASE_URL')
+supabase_key = os.environ.get('SUPABASE_KEY')
+if not supabase_url or not supabase_key:
+    raise Exception("Supabase URL or Key not provided in environment variables")
+supabase: Client = create_client(supabase_url, supabase_key)
+
+# ========================
 # EMAIL CONFIGURATION
 # ========================
 
-# Email service configuration (using Brevo/Sendinblue as recommended)
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp-relay.brevo.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')  # Your Brevo login email
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Brevo SMTP key
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@steganovault.com')
 
-# Initialize Flask-Mail
 mail = Mail(app)
 
-# Serializer for generating tokens
 serializer = URLSafeTimedSerializer(app.secret_key)
 
 # ========================
 # APPLICATION CONFIGURATION
 # ========================
 
-# Google Drive setup
 SCOPES = ['https://www.googleapis.com/auth/drive']
 GOOGLE_DRIVE_FOLDER_ID = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
-
-# User data files
-DATA_DIR = 'data'
-USER_REVIEWS_FILE = os.path.join(DATA_DIR, 'user_reviews.json')
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-OTP_STORAGE_FILE = os.path.join(DATA_DIR, 'otp_storage.json')
-PASSWORD_RESET_TOKENS = os.path.join(DATA_DIR, 'password_reset_tokens.json')
-
-# Create data directory if it doesn't exist
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# Initialize data files if they don't exist
-for file_path in [USER_REVIEWS_FILE, USERS_FILE, OTP_STORAGE_FILE, PASSWORD_RESET_TOKENS]:
-    if not os.path.exists(file_path):
-        with open(file_path, 'w') as f:
-            if file_path == USERS_FILE:
-                json.dump([], f, indent=2)
-            elif file_path in [OTP_STORAGE_FILE, PASSWORD_RESET_TOKENS]:
-                json.dump({}, f, indent=2)
-            else:
-                json.dump([], f, indent=2)
-
-def format_json_file(file_path):
-    """Reformat JSON file to have proper indentation and line breaks"""
-    try:
-        with open(file_path, 'r+') as f:
-            try:
-                data = json.load(f)
-                f.seek(0)
-                json.dump(data, f, indent=2)
-                f.truncate()
-            except json.JSONDecodeError:
-                # If file is empty or invalid, write empty structure
-                f.seek(0)
-                if file_path == USERS_FILE:
-                    json.dump([], f, indent=2)
-                else:
-                    json.dump({}, f, indent=2)
-                f.truncate()
-    except Exception as e:
-        logger.error(f"Error formatting JSON file {file_path}: {e}")
-
-# Format all JSON files on startup
-for file_path in [USER_REVIEWS_FILE, USERS_FILE, OTP_STORAGE_FILE, PASSWORD_RESET_TOKENS]:
-    format_json_file(file_path)
 
 # ========================
 # AUTHENTICATION UTILITIES
@@ -140,45 +100,44 @@ def login_required(f):
 
 def get_user_by_email(email):
     try:
-        with open(USERS_FILE, 'r') as f:
-            users = json.load(f)
-        for user in users:
-            if user['email'] == email:
-                return user
+        response = supabase.table('users').select('*').eq('email', email).single().execute()
+        if response.data:
+            return {
+                'id': response.data['id'],
+                'name': response.data['name'],
+                'email': response.data['email'],
+                'password': response.data['password'],
+                'created_at': response.data['created_at'],
+                'verified': response.data['verified']
+            }
         return None
     except Exception as e:
-        logger.error(f"Error getting user by email: {e}")
+        logger.error(f"Error getting user by email {email}: {e}")
         return None
 
 def save_user(user):
     try:
-        with open(USERS_FILE, 'r+') as f:
-            users = json.load(f)
-            users.append(user)
-            f.seek(0)
-            json.dump(users, f, indent=2)
-            f.truncate()
-        return True
+        payload = {
+            'name': user['name'],
+            'email': user['email'],
+            'password': user['password'],
+            'created_at': datetime.now().isoformat(),
+            'verified': user.get('verified', False)
+        }
+        logger.info(f"Attempting to save user with payload: {payload}")
+        response = supabase.table('users').insert(payload).execute()
+        logger.info(f"Supabase response: {response.data}")
+        return bool(response.data)
     except Exception as e:
         logger.error(f"Error saving user: {e}")
         return False
 
 def update_user_password(email, new_password):
     try:
-        with open(USERS_FILE, 'r+') as f:
-            users = json.load(f)
-            updated = False
-            for user in users:
-                if user['email'] == email:
-                    user['password'] = hash_password(new_password)
-                    updated = True
-                    break
-            if updated:
-                f.seek(0)
-                json.dump(users, f, indent=2)
-                f.truncate()
-                return True
-        return False
+        response = supabase.table('users').update({
+            'password': hash_password(new_password)
+        }).eq('email', email).execute()
+        return bool(response.data)
     except Exception as e:
         logger.error(f"Error updating user password: {e}")
         return False
@@ -186,63 +145,44 @@ def update_user_password(email, new_password):
 def generate_otp(email):
     otp = ''.join(random.choices(string.digits, k=6))
     try:
-        with open(OTP_STORAGE_FILE, 'r+') as f:
-            try:
-                otp_data = json.load(f)
-            except json.JSONDecodeError:
-                otp_data = {}
-                
-            otp_data[email] = {
-                'otp': otp,
-                'timestamp': datetime.now().isoformat(),
-                'verified': False
-            }
-            f.seek(0)
-            json.dump(otp_data, f, indent=2)
-            f.truncate()
-        return otp
+        response = supabase.table('otp_storage').upsert({
+            'email': email,
+            'otp': otp,
+            'timestamp': datetime.now().isoformat(),
+            'verified': False
+        }, on_conflict=['email']).execute()
+        return otp if response.data else None
     except Exception as e:
-        logger.error(f"Error generating OTP: {e}")
+        logger.error(f"Error generating OTP for {email}: {e}")
         return None
 
 def verify_otp(email, otp):
     try:
-        with open(OTP_STORAGE_FILE, 'r') as f:
-            try:
-                otp_data = json.load(f)
-            except json.JSONDecodeError:
-                otp_data = {}
-        
-        if email not in otp_data:
+        response = supabase.table('otp_storage').select('otp', 'timestamp').eq('email', email).single().execute()
+        if not response.data:
             return False
         
-        stored_otp = otp_data[email]
+        stored_otp = response.data['otp']
+        otp_time = datetime.fromisoformat(response.data['timestamp'].replace('Z', '+00:00'))
         
-        # Check if OTP is expired (5 minutes)
-        otp_time = datetime.fromisoformat(stored_otp['timestamp'])
         if (datetime.now() - otp_time).total_seconds() > 300:
             return False
         
-        if stored_otp['otp'] == otp:
-            otp_data[email]['verified'] = True
-            with open(OTP_STORAGE_FILE, 'w') as f:
-                json.dump(otp_data, f, indent=2)
+        if stored_otp == otp:
+            supabase.table('otp_storage').update({'verified': True}).eq('email', email).execute()
+            supabase.table('users').update({'verified': True}).eq('email', email).execute()
             return True
         return False
     except Exception as e:
-        logger.error(f"Error verifying OTP: {e}")
+        logger.error(f"Error verifying OTP for {email}: {e}")
         return False
 
 def is_verified(email):
     try:
-        with open(OTP_STORAGE_FILE, 'r') as f:
-            try:
-                otp_data = json.load(f)
-            except json.JSONDecodeError:
-                otp_data = {}
-        return otp_data.get(email, {}).get('verified', False)
+        response = supabase.table('otp_storage').select('verified').eq('email', email).single().execute()
+        return response.data['verified'] if response.data else False
     except Exception as e:
-        logger.error(f"Error checking verification status: {e}")
+        logger.error(f"Error checking verification status for {email}: {e}")
         return False
 
 def hash_password(password):
@@ -254,50 +194,34 @@ def check_password(password, hashed):
 def generate_password_reset_token(email):
     token = serializer.dumps(email, salt='password-reset-salt')
     try:
-        with open(PASSWORD_RESET_TOKENS, 'r+') as f:
-            try:
-                tokens = json.load(f)
-            except json.JSONDecodeError:
-                tokens = {}
-            tokens[token] = {
-                'email': email,
-                'timestamp': datetime.now().isoformat()
-            }
-            f.seek(0)
-            json.dump(tokens, f, indent=2)
-            f.truncate()
-        return token
+        response = supabase.table('password_reset_tokens').insert({
+            'token': token,
+            'email': email,
+            'timestamp': datetime.now().isoformat()
+        }).execute()
+        return token if response.data else None
     except Exception as e:
-        logger.error(f"Error generating password reset token: {e}")
+        logger.error(f"Error generating password reset token for {email}: {e}")
         return None
 
 def verify_password_reset_token(token, max_age=3600):
     try:
-        with open(PASSWORD_RESET_TOKENS, 'r') as f:
-            try:
-                tokens = json.load(f)
-            except json.JSONDecodeError:
-                tokens = {}
-        
-        if token not in tokens:
+        response = supabase.table('password_reset_tokens').select('email', 'timestamp').eq('token', token).single().execute()
+        if not response.data:
             return None
-            
-        token_data = tokens[token]
-        token_time = datetime.fromisoformat(token_data['timestamp'])
         
-        # Check if token is expired
+        email = response.data['email']
+        token_time = datetime.fromisoformat(response.data['timestamp'].replace('Z', '+00:00'))
+        
         if (datetime.now() - token_time).total_seconds() > max_age:
             return None
-            
-        # Verify with serializer
-        email = serializer.loads(token, salt='password-reset-salt', max_age=max_age)
-        if email == token_data['email']:
-            return email
-        return None
+        
+        email_from_token = serializer.loads(token, salt='password-reset-salt', max_age=max_age)
+        return email if email_from_token == email else None
     except (SignatureExpired, BadTimeSignature):
         return None
     except Exception as e:
-        logger.error(f"Error verifying password reset token: {str(e)}")
+        logger.error(f"Error verifying password reset token: {e}")
         return None
 
 # ========================
@@ -308,7 +232,7 @@ def verify_password_reset_token(token, max_age=3600):
 def register():
     data = request.get_json()
     if not data or 'email' not in data or 'password' not in data or 'name' not in data:
-        return jsonify({'error': 'Name, email and password are required'}), 400
+        return jsonify({'error': 'Name, email, and password are required'}), 400
     
     email = data['email'].lower()
     password = data['password']
@@ -320,12 +244,15 @@ def register():
     if get_user_by_email(email):
         return jsonify({'error': 'Email already registered'}), 400
     
-    # Generate OTP
+    hashed_password = hash_password(password)
+    user = {'name': name, 'email': email, 'password': hashed_password}
+    if not save_user(user):
+        return jsonify({'error': 'Failed to register user'}), 500
+    
     otp = generate_otp(email)
     if not otp:
         return jsonify({'error': 'Failed to generate OTP'}), 500
     
-    # Send OTP email
     try:
         msg = Message('Your SteganoVault Verification Code',
                      recipients=[email],
@@ -334,37 +261,22 @@ def register():
         mail.send(msg)
         logger.info(f"OTP sent successfully to {email}")
     except Exception as e:
-        logger.error(f"Failed to send OTP email to {email}: {str(e)}")
-        return jsonify({'error': 'Failed to send OTP email. Please check your email address.'}), 500
+        logger.error(f"Failed to send OTP email to {email}: {e}")
+        return jsonify({'error': 'Failed to send OTP email'}), 500
     
     return jsonify({'message': 'OTP sent to your email'}), 200
 
 @app.route('/auth/verify', methods=['POST'])
 def verify():
     data = request.get_json()
-    if not data or 'email' not in data or 'otp' not in data or 'password' not in data or 'name' not in data:
-        return jsonify({'error': 'Name, email, OTP and password are required'}), 400
+    if not data or 'email' not in data or 'otp' not in data:
+        return jsonify({'error': 'Email and OTP are required'}), 400
     
     email = data['email'].lower()
     otp = data['otp']
-    password = data['password']
-    name = data['name']
     
     if not verify_otp(email, otp):
         return jsonify({'error': 'Invalid or expired OTP'}), 400
-    
-    # Create user account if not exists
-    if not get_user_by_email(email):
-        user = {
-            'name': name,
-            'email': email,
-            'password': hash_password(password),
-            'created_at': datetime.now().isoformat(),
-            'verified': True
-        }
-        if not save_user(user):
-            logger.error(f"Failed to save user {email} after OTP verification")
-            return jsonify({'error': 'Failed to create user account'}), 500
     
     return jsonify({'message': 'Email verified successfully'}), 200
 
@@ -384,14 +296,14 @@ def login():
     if not check_password(password, user['password']):
         return jsonify({'error': 'Invalid credentials'}), 401
     
-    if not is_verified(email):
+    if not user.get('verified', False):
         return jsonify({'error': 'Email not verified'}), 403
     
     session['user_id'] = user['email']
     return jsonify({
-        'message': 'Login successful', 
+        'message': 'Login successful',
         'user': {
-            'email': user['email'], 
+            'email': user['email'],
             'name': user.get('name', ''),
             'verified': user.get('verified', False)
         }
@@ -401,10 +313,7 @@ def login():
 def logout():
     if 'user_id' in session:
         session.pop('user_id', None)
-        return jsonify({
-            'message': 'Logged out successfully',
-            'notification': 'You have been logged out successfully'
-        }), 200
+        return jsonify({'message': 'Logged out successfully'}), 200
     return jsonify({'error': 'Not logged in'}), 400
 
 @app.route('/auth/status', methods=['GET'])
@@ -434,60 +343,50 @@ def forgot_password():
     if not user:
         return jsonify({'error': 'Email not found'}), 404
     
-    # Generate password reset token
     token = generate_password_reset_token(email)
     if not token:
-        return jsonify({'error': 'Failed to generate password reset token'}), 500
+        return jsonify({'error': 'Failed to generate reset token'}), 500
     
     reset_link = f"{request.host_url}auth/reset-password?token={token}"
     
-    # Send password reset email
     try:
         msg = Message('Password Reset Request',
                      recipients=[email],
                      sender=app.config['MAIL_DEFAULT_SENDER'])
-        msg.body = f'To reset your password, click the following link:\n\n{reset_link}\n\nThis link will expire in 1 hour.'
+        msg.body = f'To reset your password, click the link: {reset_link}\nThis link expires in 1 hour.'
         mail.send(msg)
     except Exception as e:
-        logger.error(f"Failed to send password reset email: {str(e)}")
-        return jsonify({'error': 'Failed to send password reset email'}), 500
+        logger.error(f"Failed to send reset email to {email}: {e}")
+        return jsonify({'error': 'Failed to send reset email'}), 500
     
-    return jsonify({'message': 'Password reset link sent to your email'}), 200
+    return jsonify({'message': 'Password reset link sent'}), 200
 
-@app.route('/auth/reset-password', methods=['POST'])
+@app.route('/auth/reset-password', methods=['GET', 'POST'])
 def reset_password():
-    data = request.get_json()
-    if not data or 'token' not in data or 'new_password' not in data:
-        return jsonify({'error': 'Token and new password are required'}), 400
+    token = request.args.get('token') if request.method == 'GET' else request.get_json().get('token')
+    if not token:
+        return jsonify({'error': 'Token is required'}), 400
     
-    token = data['token']
-    new_password = data['new_password']
-    
-    if len(new_password) < 8:
-        return jsonify({'error': 'Password must be at least 8 characters'}), 400
-    
-    # Verify token
     email = verify_password_reset_token(token)
     if not email:
         return jsonify({'error': 'Invalid or expired token'}), 400
     
-    # Update password
+    if request.method == 'GET':
+        return jsonify({'valid': True, 'email': email}), 200
+    
+    # POST request handling
+    data = request.get_json()
+    if not data or 'new_password' not in data:
+        return jsonify({'error': 'New password is required'}), 400
+    
+    new_password = data['new_password']
+    if len(new_password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+    
     if update_user_password(email, new_password):
-        # Remove used token
-        try:
-            with open(PASSWORD_RESET_TOKENS, 'r+') as f:
-                tokens = json.load(f)
-                if token in tokens:
-                    del tokens[token]
-                    f.seek(0)
-                    json.dump(tokens, f, indent=2)
-                    f.truncate()
-        except Exception as e:
-            logger.error(f"Error removing used token: {e}")
-        
+        supabase.table('password_reset_tokens').delete().eq('token', token).execute()
         return jsonify({'message': 'Password updated successfully'}), 200
-    else:
-        return jsonify({'error': 'Failed to update password'}), 500
+    return jsonify({'error': 'Failed to update password'}), 500
 
 # ========================
 # REVIEWS ENDPOINTS
@@ -497,57 +396,51 @@ def reset_password():
 def handle_reviews():
     if request.method == 'GET':
         try:
-            with open(USER_REVIEWS_FILE, 'r') as f:
-                try:
-                    reviews = json.load(f)
-                except json.JSONDecodeError:
-                    reviews = []
+            response = supabase.table('reviews').select('name', 'text', 'rating', 'timestamp', 'user_email')\
+                .eq('verified', True)\
+                .order('timestamp', desc=True)\
+                .execute()
+            reviews = []
+            for review in response.data:
+                user_response = supabase.table('users').select('name').eq('email', review['user_email']).single().execute()
+                user_name = user_response.data['name'] if user_response.data else 'Anonymous'
+                reviews.append({
+                    "name": review['name'],
+                    "text": review['text'],
+                    "rating": review['rating'],
+                    "timestamp": review['timestamp'],
+                    "user_email": review['user_email'],
+                    "user_name": user_name
+                })
             return jsonify(reviews)
         except Exception as e:
-            logger.error(f"Error reading reviews: {e}")
+            logger.error(f"Error fetching reviews: {e}")
             return jsonify([])
-    
+
     elif request.method == 'POST':
-        # Check if user is logged in
+        data = request.get_json()
+        if not data or 'name' not in data or 'text' not in data or 'rating' not in data:
+            return jsonify({"error": "Missing required fields"}), 400
+        
         if 'user_id' not in session:
-            return jsonify({"error": "Authentication required"}), 401
-            
+            return jsonify({"error": "Please login to submit a review"}), 401
+        
+        user_email = session['user_id']
+        user = get_user_by_email(user_email)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
         try:
-            data = request.get_json()
-            if not data or 'name' not in data or 'text' not in data or 'rating' not in data:
-                return jsonify({"error": "Missing required fields"}), 400
-            
-            user_email = session.get('user_id', 'anonymous')
-            user = get_user_by_email(user_email)
-            
-            if not user:
-                return jsonify({"error": "User not found"}), 404
-            
-            new_review = {
-                "name": data['name'],
-                "text": data['text'],
-                "rating": int(data['rating']),
-                "timestamp": datetime.now().isoformat(),
-                "verified": True,
-                "user_email": user_email,
-                "user_name": user.get('name', 'Anonymous')
-            }
-            
-            with open(USER_REVIEWS_FILE, 'r+') as f:
-                try:
-                    reviews = json.load(f)
-                except json.JSONDecodeError:
-                    reviews = []
-                reviews.append(new_review)
-                f.seek(0)
-                json.dump(reviews, f, indent=2)
-                f.truncate()
-            
-            return jsonify({
-                "status": "success", 
-                "review": new_review,
-                "message": "Review submitted successfully!"
-            })
+            response = supabase.table('reviews').insert({
+                'user_email': user_email,
+                'name': data['name'],
+                'text': data['text'],
+                'rating': int(data['rating']),
+                'timestamp': datetime.now().isoformat(),
+                'verified': True
+            }).execute()
+            return jsonify({"message": "Review submitted successfully"}) if response.data else jsonify({"error": "Failed to submit review"}), 500
         except Exception as e:
             logger.error(f"Error saving review: {e}")
             return jsonify({"error": str(e)}), 500
@@ -555,58 +448,58 @@ def handle_reviews():
 @app.route('/api/reviews/latest')
 def get_latest_reviews():
     try:
-        with open(USER_REVIEWS_FILE, 'r') as f:
-            try:
-                reviews = json.load(f)
-            except json.JSONDecodeError:
-                reviews = []
-        
-        # Get verified reviews, sorted by newest first
-        verified_reviews = [r for r in reviews if r.get('verified', False)]
-        verified_reviews.sort(key=lambda x: x['timestamp'], reverse=True)
-        
-        return jsonify(verified_reviews[:10])
+        response = supabase.table('reviews').select('name', 'text', 'rating', 'timestamp', 'user_email')\
+            .eq('verified', True)\
+            .order('timestamp', desc=True)\
+            .limit(10)\
+            .execute()
+        reviews = []
+        for review in response.data:
+            user_response = supabase.table('users').select('name').eq('email', review['user_email']).single().execute()
+            user_name = user_response.data['name'] if user_response.data else 'Anonymous'
+            reviews.append({
+                "name": review['name'],
+                "text": review['text'],
+                "rating": review['rating'],
+                "timestamp": review['timestamp'],
+                "user_email": review['user_email'],
+                "user_name": user_name
+            })
+        return jsonify(reviews)
     except Exception as e:
-        logger.error(f"Error getting latest reviews: {e}")
+        logger.error(f"Error fetching latest reviews: {e}")
         return jsonify([])
 
 @app.route('/api/testimonials')
 def get_testimonials():
     try:
-        with open(USER_REVIEWS_FILE, 'r') as f:
-            try:
-                reviews = json.load(f)
-            except json.JSONDecodeError:
-                reviews = []
+        response = supabase.table('reviews').select('name', 'text', 'rating', 'timestamp', 'user_email')\
+            .eq('verified', True)\
+            .order('timestamp', desc=True)\
+            .limit(7)\
+            .execute()
+        verified_reviews = []
+        for review in response.data:
+            user_response = supabase.table('users').select('name').eq('email', review['user_email']).single().execute()
+            user_name = user_response.data['name'] if user_response.data else 'Anonymous'
+            verified_reviews.append({
+                "name": review['name'],
+                "text": review['text'],
+                "rating": review['rating'],
+                "timestamp": review['timestamp'],
+                "user_email": review['user_email'],
+                "user_name": user_name
+            })
         
-        # Get verified reviews, sorted by newest first
-        verified_reviews = [r for r in reviews if r.get('verified', False)]
-        verified_reviews.sort(key=lambda x: x['timestamp'], reverse=True)
-        
-        # Combine with default testimonials
         default_testimonials = [
-            {
-                "name": "Agent X",
-                "text": "SteganoVault made hiding messages so fun and easy!",
-                "rating": 5
-            },
-            {
-                "name": "Codebreaker Y",
-                "text": "A must-have tool for any spy enthusiast!",
-                "rating": 5
-            },
-            {
-                "name": "Security Expert Z",
-                "text": "The perfect balance of security and usability.",
-                "rating": 4
-            }
+            {"name": "Agent X", "text": "SteganoVault made hiding messages so fun!", "rating": 5},
+            {"name": "Codebreaker Y", "text": "A must-have tool for spy enthusiasts!", "rating": 5},
+            {"name": "Security Expert Z", "text": "Perfect balance of security and usability.", "rating": 4}
         ]
         
-        combined_testimonials = default_testimonials + verified_reviews[:7]
-        
-        return jsonify(combined_testimonials)
+        return jsonify(default_testimonials + verified_reviews)
     except Exception as e:
-        logger.error(f"Error getting testimonials: {e}")
+        logger.error(f"Error fetching testimonials: {e}")
         return jsonify([])
 
 # ========================
@@ -614,7 +507,6 @@ def get_testimonials():
 # ========================
 
 def convert_to_png(input_path):
-    """Convert image to PNG format."""
     try:
         img = Image.open(input_path).convert("RGB")
         png_path = input_path.rsplit(".", 1)[0] + "_converted.png"
@@ -625,7 +517,6 @@ def convert_to_png(input_path):
         return None
 
 def generate_preview(input_path):
-    """Generate a preview image for display."""
     try:
         if input_path.lower().endswith(('.png', '.jpg', '.jpeg')):
             img = Image.open(input_path)
@@ -633,7 +524,7 @@ def generate_preview(input_path):
             preview_path = os.path.join('static', preview_filename)
             img.thumbnail((300, 300))
             img.save(preview_path, format="PNG", quality=85)
-            return preview_filename  # Return just the filename for URL generation
+            return preview_filename
         return None
     except Exception as e:
         logger.error(f"Preview Generation Error: {e}")
@@ -668,11 +559,10 @@ def decode_image(input_path, password):
         if extracted_message:
             if ":" in extracted_message:
                 parts = extracted_message.split(":")
-                if len(parts) == 3:  # watermark:password:message
+                if len(parts) == 3:
                     stored_password, stored_message = parts[1], parts[2]
-                else:  # password:message
+                else:
                     stored_password, stored_message = parts[0], parts[1]
-                
                 return stored_message if stored_password == password else "Incorrect password!", preview_filename
             return extracted_message, preview_filename
         return "No hidden message found!", preview_filename
@@ -848,7 +738,7 @@ def encode_video(input_path, message, password):
     try:
         cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
-            raise ValueError("Could not open input video file")
+            raise ValueError("Could not open video file")
         cap.release()
 
         secret_message = f"{password}:{message}" if password else message
@@ -895,28 +785,22 @@ def decode_video(input_path, password):
         return f"Error decoding video: {str(e)}"
 
 def get_drive_service():
-    """Initialize Google Drive API service with service account credentials."""
     credentials_json = os.environ.get('GOOGLE_CREDENTIALS')
     if not credentials_json:
-        logger.error("GOOGLE_CREDENTIALS environment variable not set")
+        logger.error("GOOGLE_CREDENTIALS not set")
         return None
     
     try:
         credentials_info = json.loads(credentials_json)
-        credentials = service_account.Credentials.from_service_account_info(
-            credentials_info,
-            scopes=SCOPES
-        )
+        credentials = service_account.Credentials.from_service_account_info(credentials_info, scopes=SCOPES)
         return build('drive', 'v3', credentials=credentials)
     except Exception as e:
-        logger.error(f"Error initializing Drive service: {str(e)}")
+        logger.error(f"Error initializing Drive service: {e}")
         return None
 
 def upload_to_drive(file_path, file_name):
-    """Upload a file to Google Drive and return its public URL with ?usp=drivesdk."""
     drive_service = get_drive_service()
     if not drive_service:
-        logger.error("Drive service not initialized")
         return None
     
     try:
@@ -934,11 +818,9 @@ def upload_to_drive(file_path, file_name):
             fileId=file['id'],
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
-        # Modify the webViewLink to use ?usp=drivesdk instead of ?usp=sharing
-        share_url = file['webViewLink'].replace('usp=sharing', 'usp=drivesdk')
-        return share_url
+        return file['webViewLink'].replace('usp=sharing', 'usp=drivesdk')
     except Exception as e:
-        logger.error(f"Failed to upload to Google Drive: {str(e)}")
+        logger.error(f"Failed to upload to Drive: {e}")
         return None
 
 # ========================
@@ -952,10 +834,7 @@ def index():
 @app.route("/encode", methods=["POST"])
 def encode():
     if 'file' not in request.files:
-        return jsonify({
-            "error": "No file uploaded",
-            "status": "error"
-        }), 400
+        return jsonify({"error": "No file uploaded"}), 400
     
     uploaded_file = request.files['file']
     message = request.form.get("message")
@@ -963,17 +842,11 @@ def encode():
     watermark = request.form.get("watermark", "")
 
     if not message:
-        return jsonify({
-            "error": "Message is required!",
-            "status": "error"
-        }), 400
+        return jsonify({"error": "Message is required"}), 400
 
     filename = secure_filename(uploaded_file.filename)
     if not filename:
-        return jsonify({
-            "error": "Invalid filename!",
-            "status": "error"
-        }), 400
+        return jsonify({"error": "Invalid filename"}), 400
 
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, filename)
@@ -999,14 +872,10 @@ def encode():
         elif ext in [".mp4", ".avi", ".mov"]:
             output_file = encode_video(file_path, message, password)
         else:
-            return jsonify({
-                "error": "Unsupported file format!",
-                "status": "error"
-            }), 400
+            return jsonify({"error": "Unsupported file format"}), 400
 
         if output_file and os.path.exists(output_file):
             processing_time = round(time.time() - start_time, 2)
-            
             unique_id = str(uuid.uuid4())
             final_filename = f"encoded_{unique_id}_{os.path.basename(output_file)}"
             share_url = upload_to_drive(output_file, final_filename)
@@ -1020,43 +889,30 @@ def encode():
                 "checksum": checksum,
                 "processing_time": processing_time,
                 "preview_url": url_for('static', filename=preview_file) if preview_file else None,
-                "share_url": share_url if share_url else None
+                "share_url": share_url
             }
-
             response = send_file(output_file, as_attachment=True, download_name=final_filename)
             response.headers["X-Response-Data"] = json.dumps(response_data)
             return response
         
-        return jsonify({
-            "error": "Failed to encode file!",
-            "status": "error"
-        }), 500
+        return jsonify({"error": "Failed to encode file"}), 500
     except Exception as e:
-        logger.error(f"Encode Endpoint Error: {e}")
-        return jsonify({
-            "error": f"Encoding failed: {str(e)}",
-            "status": "error"
-        }), 500
+        logger.error(f"Encode Error: {e}")
+        return jsonify({"error": f"Encoding failed: {str(e)}"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 @app.route("/decode", methods=["POST"])
 def decode():
     if 'file' not in request.files:
-        return jsonify({
-            "error": "No file uploaded",
-            "status": "error"
-        }), 400
+        return jsonify({"error": "No file uploaded"}), 400
     
     uploaded_file = request.files['file']
     password = request.form.get("password", "")
 
     filename = secure_filename(uploaded_file.filename)
     if not filename:
-        return jsonify({
-            "error": "Invalid filename!",
-            "status": "error"
-        }), 400
+        return jsonify({"error": "Invalid filename"}), 400
 
     temp_dir = tempfile.mkdtemp()
     file_path = os.path.join(temp_dir, filename)
@@ -1082,10 +938,7 @@ def decode():
         elif ext in [".mp4", ".avi", ".mov"]:
             decoded_message = decode_video(file_path, password)
         else:
-            return jsonify({
-                "error": "Unsupported file format!",
-                "status": "error"
-            }), 400
+            return jsonify({"error": "Unsupported file format"}), 400
 
         processing_time = round(time.time() - start_time, 2)
         
@@ -1096,18 +949,15 @@ def decode():
             "processing_time": processing_time
         })
     except Exception as e:
-        logger.error(f"Decode Endpoint Error: {e}")
-        return jsonify({
-            "error": f"Failed to decode file: {str(e)}",
-            "status": "error"
-        }), 500
+        logger.error(f"Decode Error: {e}")
+        return jsonify({"error": f"Decoding failed: {str(e)}"}), 500
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 @app.route('/privacy')
 def privacy():
     return jsonify({
-        "privacy_policy": "SteganoVault does not store any of your files or messages. All processing happens in your browser and files are deleted immediately after processing. We respect your privacy!"
+        "privacy_policy": "SteganoVault does not store your files or messages. All processing happens on the server and files are deleted immediately after."
     })
 
 # ========================
@@ -1115,11 +965,9 @@ def privacy():
 # ========================
 
 if __name__ == "__main__":
-    # Create static directory if it doesn't exist
     if not os.path.exists('static'):
         os.makedirs('static')
     
-    logger.info("Starting SteganoVault server...")
-    
+    logger.info("Starting SteganoVault server with Supabase...")
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
