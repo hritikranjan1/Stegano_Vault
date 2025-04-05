@@ -94,7 +94,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
+            return jsonify({'error': 'Authentication required, Please login first to submit your review'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
@@ -190,39 +190,6 @@ def hash_password(password):
 
 def check_password(password, hashed):
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-
-def generate_password_reset_token(email):
-    token = serializer.dumps(email, salt='password-reset-salt')
-    try:
-        response = supabase.table('password_reset_tokens').insert({
-            'token': token,
-            'email': email,
-            'timestamp': datetime.now().isoformat()
-        }).execute()
-        return token if response.data else None
-    except Exception as e:
-        logger.error(f"Error generating password reset token for {email}: {e}")
-        return None
-
-def verify_password_reset_token(token, max_age=3600):
-    try:
-        response = supabase.table('password_reset_tokens').select('email', 'timestamp').eq('token', token).single().execute()
-        if not response.data:
-            return None
-        
-        email = response.data['email']
-        token_time = datetime.fromisoformat(response.data['timestamp'].replace('Z', '+00:00'))
-        
-        if (datetime.now() - token_time).total_seconds() > max_age:
-            return None
-        
-        email_from_token = serializer.loads(token, salt='password-reset-salt', max_age=max_age)
-        return email if email_from_token == email else None
-    except (SignatureExpired, BadTimeSignature):
-        return None
-    except Exception as e:
-        logger.error(f"Error verifying password reset token: {e}")
-        return None
 
 # ========================
 # AUTHENTICATION ROUTES
@@ -343,48 +310,38 @@ def forgot_password():
     if not user:
         return jsonify({'error': 'Email not found'}), 404
     
-    token = generate_password_reset_token(email)
-    if not token:
-        return jsonify({'error': 'Failed to generate reset token'}), 500
-    
-    reset_link = f"{request.host_url}auth/reset-password?token={token}"
+    otp = generate_otp(email)
+    if not otp:
+        return jsonify({'error': 'Failed to generate OTP'}), 500
     
     try:
-        msg = Message('Password Reset Request',
+        msg = Message('Password Reset OTP',
                      recipients=[email],
                      sender=app.config['MAIL_DEFAULT_SENDER'])
-        msg.body = f'To reset your password, click the link: {reset_link}\nThis link expires in 1 hour.'
+        msg.body = f'Your OTP for password reset is: {otp}\nThis code will expire in 5 minutes.'
         mail.send(msg)
+        return jsonify({'message': 'OTP sent to your email'}), 200
     except Exception as e:
         logger.error(f"Failed to send reset email to {email}: {e}")
-        return jsonify({'error': 'Failed to send reset email'}), 500
-    
-    return jsonify({'message': 'Password reset link sent'}), 200
+        return jsonify({'error': 'Failed to send OTP email'}), 500
 
-@app.route('/auth/reset-password', methods=['GET', 'POST'])
+@app.route('/auth/reset-password', methods=['POST'])
 def reset_password():
-    token = request.args.get('token') if request.method == 'GET' else request.get_json().get('token')
-    if not token:
-        return jsonify({'error': 'Token is required'}), 400
-    
-    email = verify_password_reset_token(token)
-    if not email:
-        return jsonify({'error': 'Invalid or expired token'}), 400
-    
-    if request.method == 'GET':
-        return jsonify({'valid': True, 'email': email}), 200
-    
-    # POST request handling
     data = request.get_json()
-    if not data or 'new_password' not in data:
-        return jsonify({'error': 'New password is required'}), 400
+    if not data or 'email' not in data or 'otp' not in data or 'new_password' not in data:
+        return jsonify({'error': 'Email, OTP and new password are required'}), 400
     
+    email = data['email'].lower()
+    otp = data['otp']
     new_password = data['new_password']
+    
     if len(new_password) < 8:
         return jsonify({'error': 'Password must be at least 8 characters'}), 400
     
+    if not verify_otp(email, otp):
+        return jsonify({'error': 'Invalid or expired OTP'}), 400
+    
     if update_user_password(email, new_password):
-        supabase.table('password_reset_tokens').delete().eq('token', token).execute()
         return jsonify({'message': 'Password updated successfully'}), 200
     return jsonify({'error': 'Failed to update password'}), 500
 
@@ -392,58 +349,71 @@ def reset_password():
 # REVIEWS ENDPOINTS
 # ========================
 
-@app.route('/api/reviews', methods=['GET', 'POST'])
-def handle_reviews():
-    if request.method == 'GET':
-        try:
-            response = supabase.table('reviews').select('name', 'text', 'rating', 'timestamp', 'user_email')\
-                .eq('verified', True)\
-                .order('timestamp', desc=True)\
-                .execute()
-            reviews = []
-            for review in response.data:
-                user_response = supabase.table('users').select('name').eq('email', review['user_email']).single().execute()
-                user_name = user_response.data['name'] if user_response.data else 'Anonymous'
-                reviews.append({
-                    "name": review['name'],
-                    "text": review['text'],
-                    "rating": review['rating'],
-                    "timestamp": review['timestamp'],
-                    "user_email": review['user_email'],
-                    "user_name": user_name
-                })
-            return jsonify(reviews)
-        except Exception as e:
-            logger.error(f"Error fetching reviews: {e}")
-            return jsonify([])
+@app.route('/api/reviews', methods=['GET'])
+def get_reviews():
+    try:
+        response = supabase.table('reviews').select('name', 'text', 'rating', 'timestamp', 'user_email')\
+            .eq('verified', True)\
+            .order('timestamp', desc=True)\
+            .execute()
+        reviews = []
+        for review in response.data:
+            user_response = supabase.table('users').select('name').eq('email', review['user_email']).single().execute()
+            user_name = user_response.data['name'] if user_response.data else 'Anonymous'
+            reviews.append({
+                "name": review['name'],
+                "text": review['text'],
+                "rating": review['rating'],
+                "timestamp": review['timestamp'],
+                "user_email": review['user_email'],
+                "user_name": user_name
+            })
+        return jsonify(reviews)
+    except Exception as e:
+        logger.error(f"Error fetching reviews: {e}")
+        return jsonify([])
 
-    elif request.method == 'POST':
-        data = request.get_json()
-        if not data or 'name' not in data or 'text' not in data or 'rating' not in data:
-            return jsonify({"error": "Missing required fields"}), 400
+@app.route('/api/reviews', methods=['POST'])
+@login_required
+def submit_review():
+    data = request.get_json()
+    if not data or 'name' not in data or 'text' not in data or 'rating' not in data:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    user_email = session['user_id']
+    user = get_user_by_email(user_email)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        response = supabase.table('reviews').insert({
+            'user_email': user_email,
+            'name': data['name'],
+            'text': data['text'],
+            'rating': int(data['rating']),
+            'timestamp': datetime.now().isoformat(),
+            'verified': True
+        }).execute()
         
-        if 'user_id' not in session:
-            return jsonify({"error": "Please login to submit a review"}), 401
-        
-        user_email = session['user_id']
-        user = get_user_by_email(user_email)
-        
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        
-        try:
-            response = supabase.table('reviews').insert({
-                'user_email': user_email,
-                'name': data['name'],
-                'text': data['text'],
-                'rating': int(data['rating']),
-                'timestamp': datetime.now().isoformat(),
-                'verified': True
-            }).execute()
-            return jsonify({"message": "Review submitted successfully"}) if response.data else jsonify({"error": "Failed to submit review"}), 500
-        except Exception as e:
-            logger.error(f"Error saving review: {e}")
-            return jsonify({"error": str(e)}), 500
+        if response.data:
+            # Get the newly created review to return
+            new_review = response.data[0]
+            return jsonify({
+                "message": "Review submitted successfully",
+                "review": {
+                    "name": new_review['name'],
+                    "text": new_review['text'],
+                    "rating": new_review['rating'],
+                    "timestamp": new_review['timestamp'],
+                    "user_email": new_review['user_email'],
+                    "user_name": user['name']
+                }
+            })
+        return jsonify({"error": "Failed to submit review"}), 500
+    except Exception as e:
+        logger.error(f"Error saving review: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/reviews/latest')
 def get_latest_reviews():

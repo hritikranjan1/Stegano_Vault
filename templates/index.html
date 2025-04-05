@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <head>
-        <title>SteganoVault - Secret Hiding Hub</title>
-        <link rel="icon" type="image/png" href="https://github.com/hritikranjan1/Imagehosting/blob/main/ChatGPT%20Image%20Mar%2031,%202025,%2011_47_08%20AM.png?raw=true">
-    </head>
-    
+    <title>SteganoVault - Secret Hiding Hub</title>
+    <link rel="icon" type="image/png" href="https://github.com/hritikranjan1/Imagehosting/blob/main/ChatGPT%20Image%20Mar%2031,%202025,%2011_47_08%20AM.png?raw=true">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/@motionone/dom"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -621,15 +618,15 @@
 
         /* New styles for review confirmation */
         .review-confirmation {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
             background-color: rgba(0, 200, 0, 0.2);
             padding: 0.5rem;
             border-radius: 4px;
             margin-top: 0.5rem;
             text-align: center;
             border-left: 4px solid #00cc00;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
         }
 
         .review-confirmation.show {
@@ -697,7 +694,6 @@
                 <option value="minimal-zen">🧘 Minimal Zen</option>
                 <option value="glitchcore">📺 Glitchcore</option>
             </select>
-           
         </div>
         <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
             <a href="#how-it-works" class="bg-[var(--button-bg)] text-white px-2 py-1 rounded-lg hover:bg-[var(--hover-bg)] transition-colors text-sm sm:text-base glow-effect">How It Works</a>
@@ -769,7 +765,6 @@
 
         <label class="block mt-6 text-sm sm:text-lg md:text-xl">Optional Password:</label>
         <input type="password" id="passwordInput" class="w-full p-2 sm:p-4 border rounded bg-transparent text-sm sm:text-lg md:text-xl" placeholder="Enter password (optional)">
-
 
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
             <button id="encodeBtn" class="bg-green-500 text-white px-4 py-2 sm:px-6 sm:py-4 rounded w-full motion-button hover:bg-green-600 text-sm sm:text-lg md:text-xl glow-effect processing-animation hidden">🔒 Encoding...</button>
@@ -855,7 +850,6 @@
     <div class="w-full max-w-2xl mb-6">
         <div class="flex items-center justify-center gap-2">
             <h3 class="text-xl font-semibold mb-2 text-center">What Agents Say</h3>
-            
         </div>
         <div class="testimonial-carousel-container relative overflow-hidden h-40">
             <div class="testimonial-carousel" id="dynamicTestimonials">
@@ -1578,7 +1572,7 @@
                 container.innerHTML = '<div class="text-center py-4"><div class="spinner"></div><p>Loading reviews...</p></div>';
                 
                 try {
-                    const response = await fetch('/api/reviews/latest');
+                    const response = await fetch('/api/reviews');
                     if (!response.ok) throw new Error('Failed to load reviews');
                     
                     const reviews = await response.json();
@@ -1675,7 +1669,7 @@
                     
                     // Clear form and show confirmation
                     document.getElementById('reviewFormElement').reset();
-                    confirmation.textContent = data.message || 'Thank you for your review!';
+                    confirmation.textContent = 'Thank you for your review!';
                     confirmation.classList.remove('hidden');
                     
                     // Add animation to confirmation message
@@ -1932,7 +1926,7 @@
                             <label for="forgotEmail" class="block text-sm">Email:</label>
                             <input type="email" id="forgotEmail" class="w-full p-2 border rounded bg-transparent" required>
                         </div>
-                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Send Reset Link</button>
+                        <button type="submit" class="bg-[var(--button-bg)] text-white px-4 py-2 rounded w-full">Send Reset OTP</button>
                         <p class="text-center text-sm"><a href="#" id="backToLogin" class="text-blue-400">Back to Login</a></p>
                     </form>
                 `;
@@ -1956,8 +1950,7 @@
                         if (data.error) {
                             alert(data.error);
                         } else {
-                            authModal.style.display = 'none';
-                            alert('Password reset link sent to your email!');
+                            showResetPasswordForm(email);
                         }
                     });
                 });
@@ -1968,30 +1961,16 @@
                 });
             }
 
-            // Handle password reset from URL token
-            function checkForPasswordResetToken() {
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                
-                if (token) {
-                    // Verify token first
-                    fetch(`/auth/reset-password?token=${token}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                alert(data.error);
-                            } else if (data.valid) {
-                                showResetPasswordForm(token);
-                            }
-                        });
-                }
-            }
-
-            function showResetPasswordForm(token) {
+            // Reset password form
+            function showResetPasswordForm(email) {
                 const content = `
                     <h3 class="text-lg sm:text-xl font-semibold mb-4">Reset Your Password</h3>
                     <form id="resetPasswordForm" class="space-y-4">
-                        <input type="hidden" id="resetToken" value="${token}">
+                        <input type="hidden" id="resetEmail" value="${email}">
+                        <div>
+                            <label for="resetOtp" class="block text-sm">OTP Code:</label>
+                            <input type="text" id="resetOtp" class="w-full p-2 border rounded bg-transparent" required maxlength="6">
+                        </div>
                         <div>
                             <label for="newPassword" class="block text-sm">New Password:</label>
                             <input type="password" id="newPassword" class="w-full p-2 border rounded bg-transparent" required>
@@ -2007,7 +1986,8 @@
                 
                 document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
                     e.preventDefault();
-                    const token = document.getElementById('resetToken').value;
+                    const email = document.getElementById('resetEmail').value;
+                    const otp = document.getElementById('resetOtp').value;
                     const newPassword = document.getElementById('newPassword').value;
                     const confirmPassword = document.getElementById('confirmPassword').value;
                     
@@ -2027,7 +2007,8 @@
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            token: token,
+                            email: email,
+                            otp: otp,
                             new_password: newPassword
                         })
                     })
@@ -2055,7 +2036,7 @@
                         // Show logout notification
                         const notification = document.createElement('div');
                         notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
-                        notification.textContent = data.notification || 'Logged out successfully';
+                        notification.textContent = 'Logged out successfully';
                         document.body.appendChild(notification);
                         
                         // Remove notification after 3 seconds
@@ -2079,7 +2060,6 @@
             // Initialize auth status check and load reviews
             checkAuthStatus();
             loadUserReviews();
-            checkForPasswordResetToken();
         });
     </script>
 </body>
